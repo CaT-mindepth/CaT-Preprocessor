@@ -78,7 +78,7 @@ bool op_reads_var(const BinaryOperator * op, const Expr * var) {
 bool depends(const BinaryOperator * op1, const BinaryOperator * op2) {
   // If op1 succeeds op2 in program order,
   // return false right away
-  if (not (op1->getLocStart() < op2->getLocStart())) {
+  if (not (op1->getBeginLoc() < op2->getBeginLoc())) {
     return false;
   }
 
@@ -155,7 +155,7 @@ std::map<uint32_t, std::vector<InstBlock>> generate_partitions(const CompoundStm
   // dep_graph after collapsing strongly connected components into one node
   // Pass a function to order statements within the sccs
   const auto & condensed_graph = dep_graph.condensation([] (const BinaryOperator * op1, const BinaryOperator * op2)
-                                                        {return op1->getLocStart() < op2->getLocStart();});
+                                                        {return op1->getBeginLoc() < op2->getBeginLoc();});
 
   // Partition condensed graph using critical path scheduling
   const auto & partitioning = condensed_graph.critical_path_schedule();

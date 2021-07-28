@@ -13,6 +13,19 @@
 
 using namespace clang;
 
+std::string clang_expr_printer(const clang::Expr * expr) {
+  clang::LangOptions LangOpts;
+  LangOpts.CPlusPlus = true;
+  clang::PrintingPolicy Policy(LangOpts);  
+
+  std::string str;
+  llvm::raw_string_ostream rso(str);
+  expr->printPretty(rso, nullptr, Policy);
+  rso.flush();
+  return str;
+
+}
+
 std::string clang_stmt_printer(const clang::Stmt * stmt) {
   assert_exception(stmt != nullptr);
 
@@ -24,6 +37,7 @@ std::string clang_stmt_printer(const clang::Stmt * stmt) {
   std::string str;
   llvm::raw_string_ostream rso(str);
   stmt->printPretty(rso, nullptr, Policy);
+  rso.flush();
   return str;
 }
 

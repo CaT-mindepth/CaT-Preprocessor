@@ -28,7 +28,7 @@ std::string pkt_func_transform(const TranslationUnitDecl * tu_decl,
     all_decls.emplace_back(decl);
 
   // Sort all_decls
-  std::sort(all_decls.begin(),
+  std::stable_sort(all_decls.begin(),
             all_decls.end(),
             [] (const auto * decl1, const auto * decl2)
             { return get_order(decl1) < get_order(decl2); });

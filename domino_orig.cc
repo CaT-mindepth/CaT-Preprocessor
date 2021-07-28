@@ -14,7 +14,6 @@
 #include "sketch_backend.h"
 #include "cse.h"
 #include "csi.h"
-#include "const_prop.h"
 #include "gen_used_fields.h"
 
 #include <csignal>
@@ -30,9 +29,6 @@
 #include "util.h"
 #include "pkt_func_transform.h"
 #include "compiler_pass.h"
-
-// For debugging purposes
-#include <cassert>
 
 // For the _1, and _2 in std::bind
 // (Partial Function Application)
@@ -62,24 +58,21 @@ void populate_passes() {
   // We need to explicitly call populate_passes instead of using an initializer list
   // to populate PassMap all_passes because initializer lists don't play well with move-only
   // types like unique_ptrs (http://stackoverflow.com/questions/9618268/initializing-container-of-unique-ptrs-from-initializer-list-fails-with-gcc-4-7)
-  all_passes["cse"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), csi_transform, cse_transform})); };
+  all_passes["cse"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({csi_transform, cse_transform})); };
   all_passes["redundancy_remover"]=[] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(redundancy_remover_transform); };
   all_passes["array_validator"]  = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& ArrayValidator::ast_visit_transform, ArrayValidator(), _1)); };
   all_passes["validator"]        = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& Validator::ast_visit_transform, Validator(), _1)); };
   all_passes["int_type_checker"] = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& IntTypeChecker::ast_visit_transform, IntTypeChecker(), _1)); };
   all_passes["desugar_comp_asgn"]= [] () { return std::make_unique<DefaultSinglePass>(std::bind(& DesugarCompAssignment::ast_visit_transform, DesugarCompAssignment(), _1)); };
   all_passes["if_converter"]     = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& IfConversionHandler::transform, IfConversionHandler(), _1)); };
-  //all_passes["algebra_simplify"] = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1)); };
-  // TODO: make algebraic simplifier a fixedpoint iteration pass.
-  all_passes["algebra_simplify"] = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1)); };
+  all_passes["algebra_simplify"] = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1)); };
   all_passes["bool_to_int"]      = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& BoolToInt::ast_visit_transform, BoolToInt(), _1));};
   all_passes["expr_flattener"]   = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(std::bind(& ExprFlattenerHandler::transform, ExprFlattenerHandler(), _1)); };
   all_passes["expr_propagater"]  = [] () { return std::make_unique<DefaultSinglePass>(expr_prop_transform); };
   all_passes["stateful_flanks"]  = [] () { return std::make_unique<DefaultSinglePass>(stateful_flank_transform); };
   all_passes["ssa"]              = [] () { return std::make_unique<DefaultSinglePass>(ssa_transform); };
   all_passes["echo"]             = [] () { return std::make_unique<DefaultSinglePass>(clang_decl_printer); };
-  all_passes["gen_used_fields"]  = [] () { return std::make_unique<DefaultSinglePass>(gen_used_field_transform); };
-  all_passes["const_prop"]       = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(const_prop_transform); };
+  all_passes["gen_used_fields"]   = [] () { return std::make_unique<DefaultSinglePass>(gen_used_field_transform); };
 }
 
 PassFunctor get_pass_functor(const std::string & pass_name, const PassFactory & pass_factory) {
@@ -99,45 +92,53 @@ std::string all_passes_as_string(const PassFactory & pass_factory) {
 }
 
 void print_usage() {
-  std::cerr << "You are using the domino preprocessor for the CaT project." << std::endl;
-  std::cerr << "Usage: domino_preprocessor <source_file> " << std::endl;
+  std::cerr << "Usage: domino <source_file> <atom_template> <pipeline depth> <pipeline width> <yes to run sketch preprocessor (no by default)> <comma-separated list of passes (optional)>" << std::endl;
   std::cerr << "List of passes: " << std::endl;
   std::cerr << all_passes_as_string(all_passes);
 }
 
 int main(int argc, const char **argv) {
   try {
+    // Block out SIGINT, because we can't handle it properly
+    // signal(SIGINT, SIG_IGN);
+
     // Populate all passes
     populate_passes();
 
     // Default pass list
-    //expr_flattener
-    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,const_prop";
-    // pass list w/o anything after SSA
-    //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
+    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse";
 
-    // Usage: domino <source_file>
-    if (argc == 2) {
+    if (argc >= 5) {
       // Get cmdline args
       const auto string_to_parse = file_to_str(std::string(argv[1]));
+      const auto atom_template_file = std::string(argv[2]);
+      const auto pipeline_depth = std::atoi(argv[3]);
+      if (pipeline_depth <= 0) throw std::logic_error("Pipeline depth (" + std::string(argv[3]) + ") must be a positive integer");
+      const auto pipeline_width = std::atoi(argv[4]);
+      if (pipeline_width <= 0) throw std::logic_error("Pipeline width ("  + std::string(argv[4]) + ") must be a positive integer");
+      const auto run_sketch_prepocessor = ((argc >= 6) and (std::string(argv[5]) == "yes")) ? true : false;
       const auto pass_list = (argc == 7) ? split(std::string(argv[6]), ","): split(default_pass_list, ",");
+
+      if (argc > 7) {
+        print_usage();
+        return EXIT_FAILURE;
+      }
 
       // add all preprocessing passes
       PassFunctorVector passes_to_run;
       for (const auto & pass_name : pass_list) passes_to_run.emplace_back(get_pass_functor(pass_name, all_passes));
 
-      // Some sanity checks...
-      assert(pass_list.size() == passes_to_run.size());
+      // add partitioning pass
+      //passes_to_run.emplace_back([pipeline_depth, pipeline_width] () { return std::make_unique<SinglePass<const uint32_t, const uint32_t>>(partitioning_transform, pipeline_depth, pipeline_width); } );
+
+      // add the passes for the sketch preprocessor and backend
+      // if (run_sketch_prepocessor) passes_to_run.emplace_back([] () { return std::make_unique<DefaultSinglePass>(sketch_preprocessor); });
+      // passes_to_run.emplace_back([atom_template_file] () { return std::make_unique<SinglePass<const std::string>>(sketch_backend_transform, atom_template_file); });
 
       /// Process them one after the other
-      size_t i = 0;
-      std::cout << "total number of passes: " << passes_to_run.size() << std::endl;
-      std::cout << "order to run passes: " << default_pass_list << std::endl;
-      std::cout << std::accumulate(passes_to_run.begin(), passes_to_run.end(), string_to_parse, [&i, &pass_list] (const auto & current_output, const auto & pass_functor __attribute__((unused)))
+      std::cout << std::accumulate(passes_to_run.begin(), passes_to_run.end(), string_to_parse, [] (const auto & current_output, const auto & pass_functor __attribute__((unused)))
                                    { 
-                                   std::cout << "processing pass " << i << ": " << pass_list[i] << std::endl;
-                                   
-                                   i++;
+                                   std::cout << "processing pass " << pass_functor << std::endl;
                                    return (*pass_functor())(current_output); });
       std::cout << "processing done." << std::endl; 
       return EXIT_SUCCESS;
@@ -146,7 +147,7 @@ int main(int argc, const char **argv) {
       return EXIT_FAILURE;
     } 
   } catch (const std::exception & e) {
-    std::cerr << "domino_preprocessor: Caught exception in main " << std::endl << e.what() << std::endl;
+    std::cerr << "Caught exception in main " << std::endl << e.what() << std::endl;
     return EXIT_FAILURE;
   }
 }

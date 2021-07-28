@@ -14,6 +14,7 @@ using namespace std::placeholders;
 using namespace clang;
 
 std::string AstVisitor::ast_visit_transform(const TranslationUnitDecl * tu_decl) {
+  this->ctx = &(tu_decl->getASTContext());
   return pkt_func_transform(tu_decl, std::bind(&AstVisitor::ast_visit_helper, this, _1, _2));
 }
 

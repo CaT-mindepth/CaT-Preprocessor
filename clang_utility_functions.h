@@ -20,6 +20,9 @@ enum class VariableType {PACKET, STATE_SCALAR, STATE_ARRAY, FUNCTION_PARAMETER};
 /// denoting whether a variable should be selected or not
 typedef std::map<VariableType, bool> VariableTypeSelector;
 
+/// General purpose printer for clang expressions
+std::string clang_expr_printer(const clang::Expr * expr);
+
 /// General puprose printer for clang stmts
 /// Everything executable subclasses from clang::Stmt, including clang::Expr
 std::string clang_stmt_printer(const clang::Stmt * stmt);

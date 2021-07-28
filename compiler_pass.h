@@ -7,7 +7,8 @@
 #include <memory>
 #include <sstream>
 #include <iostream>
-#include <experimental/tuple>
+//#include <experimental/tuple>
+#include <tuple>
 
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
@@ -26,6 +27,7 @@
 #include "third_party/assert_exception.h"
 
 #include "clang_utility_functions.h"
+
 
 
 /// Convenience typedef for transforming a translation unit
@@ -77,7 +79,7 @@ class SinglePass  : public CompilerPass {
        auto partial_fn = [tu_decl, this] (const Args... t_args) { return this->transformer_(tu_decl, t_args...); };
 
        // Now pack the args_ tuple object into a parameter pack (http://en.cppreference.com/w/cpp/experimental/apply)
-       output_ = std::experimental::apply(partial_fn, args_);
+       output_ = std::apply(partial_fn, args_); // experimental
      }
 
      /// Get previously stored output
@@ -145,7 +147,9 @@ std::string SinglePass<Args...>::operator()(const std::string & string_to_parse)
   TheCompInst.createASTContext();
 
   // Set the main file handled by the source manager to the input file.
-  const clang::FileEntry *FileIn = FileMgr.getFile(temp_file_.name().c_str());
+  //const clang::FileEntry *FileIn = FileMgr.getFile(temp_file_.name().c_str());
+  const auto FileIn = FileMgr.getFile(temp_file_.name().c_str()).get();
+
   SourceMgr.setMainFileID(
       SourceMgr.createFileID(FileIn, clang::SourceLocation(), clang::SrcMgr::C_User));
   TheCompInst.getDiagnosticClient().BeginSourceFile(
@@ -173,6 +177,13 @@ class FixedPointPass : public CompilerPass {
     while (true) {
       new_output = PassType(arg_)(old_output);
       if (new_output == old_output) break;
+      else {
+
+        std::cout << "FixedPointPass: old_output and new_output do not converge. " << std::endl;
+        std::cout << " old_output: " << old_output << std::endl;
+        std::cout << " new_output: " << new_output << std::endl;
+        std::cout << " -------------------------------------------" << std::endl;
+      }
       old_output = new_output;
     }
     return new_output;

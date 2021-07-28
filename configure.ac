@@ -9,14 +9,14 @@ AC_PROG_CXX
 AC_PROG_RANLIB
 
 # Add picky CXXFLAGS
-CPPFLAGS="-std=c++14 -pthread -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D_GLIBCXX_USE_CXX11_ABI=0"
-PICKY_CXXFLAGS="-pedantic -Wconversion -Wsign-conversion -Wall -Wextra -Weffc++ -Werror"
+CPPFLAGS="-std=c++17 -pthread -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D_GLIBCXX_USE_CXX11_ABI=0"
+PICKY_CXXFLAGS="-pedantic -Wconversion -Wsign-conversion -Wall -Wextra -Weffc++"
 AC_SUBST([PICKY_CXXFLAGS])
 
 # Checks for header files.
 AC_LANG_PUSH(C++)
 
-# clang-3.5 development libraries and headers
+# clang-11 development libraries and headers
 AC_ARG_VAR(CLANG_DEV_LIBS, Root directory of Clang development libraries and headers)
 AC_SUBST([CLANG_DEV_LIBS])
 

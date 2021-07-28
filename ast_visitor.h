@@ -7,6 +7,7 @@
 #include "clang/AST/Stmt.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/Expr.h"
+#include "clang/AST/ASTContext.h"
 
 class AstVisitor {
  public:
@@ -19,6 +20,8 @@ class AstVisitor {
 
  /// Virtual methods for each node type
  protected:
+  clang::ASTContext * ctx;
+
   /// Visit a compound statement (braces in C)
   virtual std::string ast_visit_comp_stmt(const clang::CompoundStmt * comp_stmt);
 
