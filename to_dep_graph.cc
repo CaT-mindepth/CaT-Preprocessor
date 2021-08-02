@@ -1,4 +1,5 @@
-// TODO: create a to_dep_graph.h file and include it here.
+#include "to_dep_graph.h"
+
 #include "clang/AST/Decl.h"
 #include "clang/AST/Expr.h"
 
@@ -10,6 +11,9 @@
 
 #include "third_party/assert_exception.h"
 
+#include "dep_graph.h"
+#include "comp_uid.h"
+
 #include <map>
 #include <set>
 #include <vector>
@@ -18,7 +22,6 @@ using namespace clang;
 
 // TODO: delegate this typedef statement to a corresponding (most appropriate)
 // header file.
-typedef Graph<const BinaryOperator *> ProgramGraph;
 
 // op_reads_var: helper function for `depends`. Decides whether a
 // given BinaryOperator expression reads from variable `var`.
@@ -51,12 +54,19 @@ static inline bool op_reads_var(const BinaryOperator *op, const Expr *var) {
 // Given as input a vector of straight-line program statements, and
 // a partially-constructed dependency graph. Outputs the modified
 // dependency graph with RAW edges added.
+//
+// In addition, this function populates the `state_vars` set
+// with all state variable names (Why is it a set? There might be
+// multiple reads and writes to the same variable, and we want to
+// de-duplicate).
 Graph<const BinaryOperator *>
 handle_state_vars(const std::vector<const BinaryOperator *> &stmt_vector,
-                  const Graph<const BinaryOperator *> &dep_graph) {
+                  const Graph<const BinaryOperator *> &dep_graph
+                      std::set<const std::string> &state_vars) {
   Graph<const BinaryOperator *> ret = dep_graph;
   std::map<std::string, const BinaryOperator *> state_reads;
   std::map<std::string, const BinaryOperator *> state_writes;
+
   for (const auto *stmt : stmt_vector) {
     const auto *lhs = stmt->getLHS()->IgnoreParenImpCasts();
     const auto *rhs = stmt->getRHS()->IgnoreParenImpCasts();
@@ -76,6 +86,10 @@ handle_state_vars(const std::vector<const BinaryOperator *> &stmt_vector,
                        state_writes.end());
       state_writes[clang_stmt_printer(lhs)] = stmt;
       const auto state_var = clang_stmt_printer(lhs);
+
+      // Add state_var to the set of state variables.
+      state_vars.emplace(state_var);
+
       // Check state_var exists in both maps
       assert_exception(state_reads.find(state_var) != state_reads.end());
       assert_exception(state_writes.find(state_var) != state_writes.end());
@@ -129,7 +143,7 @@ bool depends(const BinaryOperator *op1, const BinaryOperator *op2) {
 }
 
 // Convert a given function into a dependency graph.
-ProgramGraph function_to_dep_graph(const CompoundStmt *function_body) {
+DepGraphPassResult function_to_dep_graph(const CompoundStmt *function_body) {
   // Verify that it's in SSA
   if (not is_in_ssa(function_body)) {
     throw std::logic_error("Partitioning will run only after program is in SSA "
@@ -147,12 +161,16 @@ ProgramGraph function_to_dep_graph(const CompoundStmt *function_body) {
 
   // Dependency graph creation
   Graph<const BinaryOperator *> dep_graph(clang_stmt_printer);
+  std::set<const std::string> state_vars;
+
   for (const auto *stmt : stmt_vector) {
     dep_graph.add_node(stmt);
   }
 
   // Handle state variables specially
-  dep_graph = handle_state_vars(stmt_vector, dep_graph);
+  // Also pass in the `state_vars` set by reference to get the
+  // list of all state variable names.
+  dep_graph = handle_state_vars(stmt_vector, dep_graph, state_vars);
 
   // Now add all Read After Write Dependencies, comparing a statement only with
   // a successor statement
@@ -164,7 +182,9 @@ ProgramGraph function_to_dep_graph(const CompoundStmt *function_body) {
     }
   }
 
-  // Eliminate nodes with no outgoing or incoming edge
+// Eliminate nodes with no outgoing or incoming edge
+// ruijief: TODO: ask why this is safe!!
+#if 0  // start comment
   std::set<const BinaryOperator *> nodes_to_remove;
   for (const auto &node : dep_graph.node_set()) {
     if (dep_graph.pred_map().at(node).empty() and
@@ -175,16 +195,50 @@ ProgramGraph function_to_dep_graph(const CompoundStmt *function_body) {
   for (const auto &node : nodes_to_remove) {
     dep_graph.remove_singleton_node(node);
   }
+#endif // end comment
 
   std::cerr << dep_graph << std::endl;
   return dep_graph;
 }
 
-ProgramGraph dep_graph_to_scc_graph(const ProgramGraph& dep_graph) {
+// Converts a regular dependency graph coupled with a set of stateful
+// variables into a SCC graph of components.
+SCCGraph dep_graph_to_scc_graph(const DependencyGraph & dep_graph, std::set<const std::string> & stateful_vars) {
   // Condense (https://en.wikipedia.org/wiki/Strongly_connected_component)
   // dep_graph after collapsing strongly connected components into one node
-  // Pass a function to order statements within the sccs
-  const auto & condensed_graph = dep_graph.condensation([] (const BinaryOperator * op1, const BinaryOperator * op2)
-                                                        {return op1->getBeginLoc() < op2->getBeginLoc();});
-  return condensed_graph;
+  // (Also) Pass a function to order statements within the sccs
+  typedef Graph<std::vector<const clang::BinaryOperator *>> SCC;
+  const SCC &scc = dep_graph.condensation(
+      [](const BinaryOperator *op1, const BinaryOperator *op2) {
+        return op1->getBeginLoc() < op2->getBeginLoc();
+      });
+
+  // Now examine each SCC component and decide if it is a stateful or stateless component.
+  std::map<int, std::vector<const clang::BinaryOperator *>> scc_ids;
+  const auto & scc_succ_map = scc.succ_map();
+
+  SCCGraph scc_graph(component_printer); 
+
+  // Add all the nodes first.
+  for (const auto & stmt_list : scc.node_set()) {
+      // comp is of std::vector< clang::BinaryOperator * > type.
+      // It is a component formed by either a) a list of Stmts, which 
+      // represents a full stateful update, or b) a single Stmt involving a 
+      // stateless operation. 
+      int scc_id = get_comp_uid();
+      scc_ids[scc_id] = stmt_list;
+      scc_graph.add_node(Component(stmt_list, scc_id));
+  }
+
+  // Next, (re)-build the relationships between the edges in the condensed graph.
+  for (const auto & comp : scc_graph.node_set()) {
+      int scc_id = comp.ID();
+      // Only add the outgoing edges, for each node.
+      const auto & out_neighbors = scc_succ_map[scc_ids[scc_id]];
+      for (const auto & dest : out_neighbors) {
+          scc_graph.add_edge(comp, dest);
+      }
+  }
+
+  return scc_graph;
 }
