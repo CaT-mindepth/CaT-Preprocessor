@@ -79,6 +79,10 @@ void populate_passes() {
   all_passes["echo"]             = [] () { return std::make_unique<DefaultSinglePass>(clang_decl_printer); };
   all_passes["gen_used_fields"]  = [] () { return std::make_unique<DefaultSinglePass>(gen_used_field_transform); };
   all_passes["const_prop"]       = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(const_prop_transform); };
+  // TODO: We CANNOT currently use this pass!!! It renames "p.***" into 'p_***' but this modification will make
+  // the local variables lose type MemberExpr which then breaks the identifiers census that tells later passes
+  // what vars are stateful and what vars are stateless. The only way to mend this is to run this pass somewhere
+  // later in the pipeline, right before we output code for synthesis.
   all_passes["rename_pkt_fields"] = [] () { return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform); };
 }
 
@@ -112,7 +116,7 @@ int main(int argc, const char **argv) {
 
     // Default pass list
     //expr_flattener
-    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,const_prop,rename_pkt_fields";
+    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,const_prop";
     // pass list w/o anything after SSA
     //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
 
