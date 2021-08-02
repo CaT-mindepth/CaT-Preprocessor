@@ -78,7 +78,9 @@ void populate_passes() {
   all_passes["ssa"]              = [] () { return std::make_unique<DefaultSinglePass>(ssa_transform); };
   all_passes["echo"]             = [] () { return std::make_unique<DefaultSinglePass>(clang_decl_printer); };
   all_passes["gen_used_fields"]  = [] () { return std::make_unique<DefaultSinglePass>(gen_used_field_transform); };
-  all_passes["const_prop"]       = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(const_prop_transform); };
+  //all_passes["const_prop"]       = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(const_prop_transform); };
+  all_passes["const_prop"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), const_prop_transform})); };
+
   // TODO: We CANNOT currently use this pass!!! It renames "p.***" into 'p_***' but this modification will make
   // the local variables lose type MemberExpr which then breaks the identifiers census that tells later passes
   // what vars are stateful and what vars are stateless. The only way to mend this is to run this pass somewhere
