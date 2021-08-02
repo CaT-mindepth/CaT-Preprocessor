@@ -1,2 +1,8 @@
- - constprop
- - DCE (dce.cc, dce.h but there are no contents there yet.)
+ - handling of conditionals during synthesis. If a component (i.e. a group of statements)
+   involves a conditional, then we must use a stateful grammar to synthesize it.
+ - packing more into stateful components in the SCC-graph. 
+    * this involves creating a struct / class called "Component" that can distinguish
+    itself from a stateful one or a stateless one.
+
+ + constprop
+ + DCE (dce.cc, dce.h but there are no contents there yet.)

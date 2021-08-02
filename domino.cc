@@ -16,6 +16,7 @@
 #include "csi.h"
 #include "const_prop.h"
 #include "gen_used_fields.h"
+#include "rename_pkt_fields.h"
 
 #include <csignal>
 
@@ -69,8 +70,6 @@ void populate_passes() {
   all_passes["int_type_checker"] = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& IntTypeChecker::ast_visit_transform, IntTypeChecker(), _1)); };
   all_passes["desugar_comp_asgn"]= [] () { return std::make_unique<DefaultSinglePass>(std::bind(& DesugarCompAssignment::ast_visit_transform, DesugarCompAssignment(), _1)); };
   all_passes["if_converter"]     = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& IfConversionHandler::transform, IfConversionHandler(), _1)); };
-  //all_passes["algebra_simplify"] = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1)); };
-  // TODO: make algebraic simplifier a fixedpoint iteration pass.
   all_passes["algebra_simplify"] = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1)); };
   all_passes["bool_to_int"]      = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& BoolToInt::ast_visit_transform, BoolToInt(), _1));};
   all_passes["expr_flattener"]   = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(std::bind(& ExprFlattenerHandler::transform, ExprFlattenerHandler(), _1)); };
@@ -80,6 +79,7 @@ void populate_passes() {
   all_passes["echo"]             = [] () { return std::make_unique<DefaultSinglePass>(clang_decl_printer); };
   all_passes["gen_used_fields"]  = [] () { return std::make_unique<DefaultSinglePass>(gen_used_field_transform); };
   all_passes["const_prop"]       = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(const_prop_transform); };
+  all_passes["rename_pkt_fields"] = [] () { return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform); };
 }
 
 PassFunctor get_pass_functor(const std::string & pass_name, const PassFactory & pass_factory) {
@@ -112,7 +112,7 @@ int main(int argc, const char **argv) {
 
     // Default pass list
     //expr_flattener
-    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,const_prop";
+    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,const_prop,rename_pkt_fields";
     // pass list w/o anything after SSA
     //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
 
@@ -120,7 +120,7 @@ int main(int argc, const char **argv) {
     if (argc == 2) {
       // Get cmdline args
       const auto string_to_parse = file_to_str(std::string(argv[1]));
-      const auto pass_list = (argc == 7) ? split(std::string(argv[6]), ","): split(default_pass_list, ",");
+      const auto pass_list = split(default_pass_list, ",");
 
       // add all preprocessing passes
       PassFunctorVector passes_to_run;
