@@ -46,7 +46,7 @@ struct Component {
 
   // Queries whether the current component is a stateful one (involves operation
   // on a stateful variable) or a stateless one.
-  bool IsStateful() { return this->isStateful_; }
+  bool IsStateful() const { return this->isStateful_; }
 
   // Does the current operation contain a ternary statement?
   // This is needed to e.g. decide what sort of grammar to use during symthesis.
@@ -90,10 +90,16 @@ struct Component {
   Component operator+(const Component & that) const {
     // We cannot merge two stateless components, that just cannot happen.
     // Indeed; either this is stateful or that is stateful.
-    assert_exception(this->IsStateful() || that.IsStateful());
-    std::set<clang::BinaryOperator *> allStmts;
-    allStmts.insert(this->getStmts());
-    allStmts.insert(rhs.getStmts());
+    assert_exception((this->IsStateful() || that.IsStateful()));
+    std::vector<const clang::BinaryOperator *> allStmts;
+    const auto & thisStmts = this->getStmts();
+    const auto & thatStmts = that.getStmts();
+    for (const auto & stmt : thisStmts) {
+      allStmts.push_back(stmt);
+    }
+    for (const auto & stmt : thatStmts) {
+      allStmts.push_back(stmt);
+    }
     return Component(allStmts, this->id_);
   }
 private:
@@ -112,7 +118,7 @@ private:
       // after all the compiler passes, each statement must be a 
       // BinaryOperator that is an assignment operation.
       assert_exception(isa<BinaryOperator>(stmt));
-      const auto * bin_op = dyn_cast<BinaryOperator>(child);
+      const auto * bin_op = dyn_cast<BinaryOperator>(stmt);
       assert_exception(bin_op->isAssignmentOp());
       defines.emplace(clang_stmt_printer(bin_op->getLHS()->IgnoreParenImpCasts()));
     }
@@ -123,11 +129,11 @@ private:
   // in the statement block.
   std::set<std::string> getUses() {
     std::set<std::string> uses;
-    for ()const auto * stmt : this->stmts_) {
+    for (const auto * stmt : this->stmts_) {
       // after all the compiler passes, each statement must be a 
       // BinaryOperator that is an assignment operation.
       assert_exception(isa<BinaryOperator>(stmt));
-      const auto * bin_op = dyn_cast<BinaryOperator>(child);
+      const auto * bin_op = dyn_cast<BinaryOperator>(stmt);
       assert_exception(bin_op->isAssignmentOp());
       // Now, we use a utility function to get all variables on the RHS.
       // Note that, we indeed get _all_ variables (incl. stateful, stateless vars) on the RHS.
