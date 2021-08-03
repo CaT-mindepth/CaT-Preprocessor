@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <map>
+#include <type_traits> // C++17 feature, required by stmt_type_census
 
 #include "clang/AST/Decl.h"
 #include "clang/AST/Stmt.h"
@@ -47,6 +48,14 @@ bool is_packet_func(const clang::FunctionDecl * func_decl);
 std::set<std::string> identifier_census(const clang::TranslationUnitDecl * decl,
                                         const VariableTypeSelector & var_selector =
                                         {{VariableType::PACKET, true}, {VariableType::FUNCTION_PARAMETER, true}, {VariableType::STATE_SCALAR, true}, {VariableType::STATE_ARRAY, true}});
+
+/// Decides if a AST node `stmt` contains a descendant of type `T` that
+/// subclasses Stmt, by recursively visiting all descendatns of the given
+/// AST node.
+/// Requires T to be a subclass of Stmt.
+template <typename T,
+          typename = std::enable_if_t<std::is_base_of<clang::Stmt, T>::value>>
+bool stmt_type_census(const clang::Stmt *stmt);
 
 /// Determine all variables (either packet or state) used within a clang::Stmt,
 std::set<std::string> gen_var_list(const clang::Stmt * stmt,
