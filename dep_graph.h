@@ -50,12 +50,15 @@ struct Component {
 
   // Does the current operation contain a ternary statement?
   // This is needed to e.g. decide what sort of grammar to use during symthesis.
-  // TODO write code to make this work.
   bool ContainsBranch() {
-    //  for (const auto * stmt : this->stmts_) {
-    //
-    //  }
-    return false; // TODO
+      for (const auto * stmt : this->stmts_) {
+        // If any statement contains a descendant of type ConditionalOperator, 
+        // then there exists a ternary in that statement. Hence we return true.
+        if (stmt_type_census<clang::ConditionalOperator>(stmt))
+          return true; 
+      }
+    // Otherwise, nobody has a ternary.
+    return false;
   }
 
   // Retrieves the variables that are inputs to the current component.

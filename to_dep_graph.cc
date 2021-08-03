@@ -20,9 +20,6 @@
 
 using namespace clang;
 
-// TODO: delegate this typedef statement to a corresponding (most appropriate)
-// header file.
-
 // op_reads_var: helper function for `depends`. Decides whether a
 // given BinaryOperator expression reads from variable `var`.
 static inline bool op_reads_var(const BinaryOperator *op, const Expr *var) {
