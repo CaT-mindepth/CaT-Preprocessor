@@ -15,8 +15,8 @@ typedef Graph<const clang::BinaryOperator *> DependencyGraph;
 
 // A Component object is a node upon which the SCCGraph is formed.
 struct Component {
-  Component(std::vector<const clang::BinaryOperator *> stmts, int id)
-      : id_(id), stmts_(stmts) {
+  Component(std::vector<const clang::BinaryOperator *> stmts, unsigned id)
+      : stmts_(stmts), id_(id) {
         std::set<std::string> stateVars;
         for (const auto * stmt : stmts) {
           const auto & rtnResult = gen_var_list(stmt, {{VariableType::PACKET, false},
@@ -35,12 +35,12 @@ struct Component {
       }
   
   // Retrieves the UID for the current component.
-  int ID() const {
+  unsigned ID() const {
     return this->id_;
   }
 
   // Resets the UID for the current component.
-  void setID(int id) {
+  void setID(unsigned id) {
     this->id_ = id;
   }
 
@@ -52,9 +52,10 @@ struct Component {
   // This is needed to e.g. decide what sort of grammar to use during symthesis.
   // TODO write code to make this work.
   bool ContainsBranch() {
-    for (const auto * stmt : this->stmts_) {
-
-    }
+    //  for (const auto * stmt : this->stmts_) {
+    //
+    //  }
+    return false; // TODO
   }
 
   // Retrieves the variables that are inputs to the current component.
@@ -68,7 +69,7 @@ struct Component {
   }
 
   // Retrieves the list of stmts in the current component.
-  const auto getStmts() const {
+  auto getStmts() const {
     return this->stmts_;
   }
 
@@ -102,13 +103,45 @@ struct Component {
     }
     return Component(allStmts, this->id_);
   }
+  
+  // graph<T> requires T to be sortable. Hence we overload the < operator.
+  bool operator<(const Component & that) const {
+    const auto & thisStmts = this->getStmts();
+    const auto & thatStmts = that.getStmts();
+    if (thisStmts.size() != thatStmts.size()) {
+      return thisStmts.size() < thatStmts.size();
+    } else {
+      // lexicographically compare statements.
+      size_t it = 0;
+
+      for (it = 0; it < thisStmts.size(); ++it) {
+        const auto & thisStmt = thisStmts[it];
+        const auto & thatStmt = thatStmts[it];
+        if (thisStmt != thatStmt) return thisStmt < thatStmt;
+      }
+      return false; // they are equal
+    }
+  }
+
+  // Equality between two Component objects solely determined by their contents.
+  bool operator==(const Component & that) {
+    if (this->getStmts().size() != that.getStmts().size()) 
+      return false;
+    size_t it = 0;
+    for (it = 0; it < this->getStmts().size(); ++it) {
+      if (this->getStmts()[it] != that.getStmts()[it])
+        return false;
+    }
+    return true;
+  }
+
 private:
   std::vector<const clang::BinaryOperator *> stmts_;
   bool isStateful_;
   std::set<std::string> statefulVars_;
   std::set<std::string> inputs_;
   std::set<std::string> outputs_;
-  int id_;
+  unsigned id_;
 
   // Gets a list of all defines (i.e. variables in the LHSes)
   // in the statement block.

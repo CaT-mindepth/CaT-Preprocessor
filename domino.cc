@@ -139,13 +139,15 @@ int main(int argc, const char **argv) {
       size_t i = 0;
       std::cout << "total number of passes: " << passes_to_run.size() << std::endl;
       std::cout << "order to run passes: " << default_pass_list << std::endl;
-      std::cout << std::accumulate(passes_to_run.begin(), passes_to_run.end(), string_to_parse, [&i, &pass_list] (const auto & current_output, const auto & pass_functor __attribute__((unused)))
+      const auto & result = std::accumulate(passes_to_run.begin(), passes_to_run.end(), string_to_parse, [&i, &pass_list] (const auto & current_output, const auto & pass_functor __attribute__((unused)))
                                    { 
                                    std::cout << "processing pass " << i << ": " << pass_list[i] << std::endl;
                                    
                                    i++;
                                    return (*pass_functor())(current_output); });
+      std::cout << result << std::endl;
       std::cout << "processing done." << std::endl; 
+      std::cout << "-------------------- dependency graph building --------------" << std::endl;
       return EXIT_SUCCESS;
     } else {
       print_usage();

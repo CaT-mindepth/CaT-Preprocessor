@@ -11,8 +11,8 @@
 
 #include "third_party/assert_exception.h"
 
-#include "dep_graph.h"
 #include "comp_uid.h"
+#include "dep_graph.h"
 
 #include <map>
 #include <set>
@@ -61,8 +61,8 @@ static inline bool op_reads_var(const BinaryOperator *op, const Expr *var) {
 // de-duplicate).
 Graph<const BinaryOperator *>
 handle_state_vars(const std::vector<const BinaryOperator *> &stmt_vector,
-                  const Graph<const BinaryOperator *> &dep_graph
-                      std::set<const std::string> &state_vars) {
+                  const Graph<const BinaryOperator *> &dep_graph,
+                  std::set<const std::string> &state_vars) {
   Graph<const BinaryOperator *> ret = dep_graph;
   std::map<std::string, const BinaryOperator *> state_reads;
   std::map<std::string, const BinaryOperator *> state_writes;
@@ -170,7 +170,7 @@ DepGraphPassResult function_to_dep_graph(const CompoundStmt *function_body) {
   // Handle state variables specially
   // Also pass in the `state_vars` set by reference to get the
   // list of all state variable names.
-  dep_graph = handle_state_vars(stmt_vector, dep_graph, state_vars);
+  handle_state_vars(stmt_vector, dep_graph, state_vars);
 
   // Now add all Read After Write Dependencies, comparing a statement only with
   // a successor statement
@@ -198,12 +198,12 @@ DepGraphPassResult function_to_dep_graph(const CompoundStmt *function_body) {
 #endif // end comment
 
   std::cerr << dep_graph << std::endl;
-  return dep_graph;
+  return std::make_pair(dep_graph, state_vars);
 }
 
 // Converts a regular dependency graph coupled with a set of stateful
 // variables into a SCC graph of components.
-SCCGraph dep_graph_to_scc_graph(const DependencyGraph & dep_graph, std::set<const std::string> & stateful_vars) {
+SCCGraph dep_graph_to_scc_graph(const DependencyGraph &dep_graph) {
   // Condense (https://en.wikipedia.org/wiki/Strongly_connected_component)
   // dep_graph after collapsing strongly connected components into one node
   // (Also) Pass a function to order statements within the sccs
@@ -213,31 +213,36 @@ SCCGraph dep_graph_to_scc_graph(const DependencyGraph & dep_graph, std::set<cons
         return op1->getBeginLoc() < op2->getBeginLoc();
       });
 
-  // Now examine each SCC component and decide if it is a stateful or stateless component.
-  std::map<int, std::vector<const clang::BinaryOperator *>> scc_ids;
-  const auto & scc_succ_map = scc.succ_map();
+  // Now examine each SCC component and decide if it is a stateful or stateless
+  // component.
+  std::map<unsigned, std::vector<const clang::BinaryOperator *>> scc_ids;
+  std::map<std::vector<const clang::BinaryOperator *>, unsigned> id_scc;
+  auto &scc_succ_map = scc.succ_map();
 
-  SCCGraph scc_graph(component_printer); 
-
+  SCCGraph scc_graph(component_printer);
+  std::vector<Component> components;
   // Add all the nodes first.
-  for (const auto & stmt_list : scc.node_set()) {
-      // comp is of std::vector< clang::BinaryOperator * > type.
-      // It is a component formed by either a) a list of Stmts, which 
-      // represents a full stateful update, or b) a single Stmt involving a 
-      // stateless operation. 
-      int scc_id = get_comp_uid();
-      scc_ids[scc_id] = stmt_list;
-      scc_graph.add_node(Component(stmt_list, scc_id));
+  for (const auto &stmt_list : scc.node_set()) {
+    // comp is of std::vector< clang::BinaryOperator * > type.
+    // It is a component formed by either a) a list of Stmts, which
+    // represents a full stateful update, or b) a single Stmt involving a
+    // stateless operation.
+    auto scc_id = get_comp_uid();
+    scc_ids[scc_id] = stmt_list;
+    id_scc[stmt_list] = scc_id;
+    components.push_back(Component(stmt_list, scc_id));
+    scc_graph.add_node(*(components.end() - 1)); // last one added
   }
 
-  // Next, (re)-build the relationships between the edges in the condensed graph.
-  for (const auto & comp : scc_graph.node_set()) {
-      int scc_id = comp.ID();
-      // Only add the outgoing edges, for each node.
-      const auto & out_neighbors = scc_succ_map[scc_ids[scc_id]];
-      for (const auto & dest : out_neighbors) {
-          scc_graph.add_edge(comp, dest);
-      }
+  // Next, (re)-build the relationships between the edges in the condensed
+  // graph.
+  for (const auto &comp : scc_graph.node_set()) {
+    auto scc_id = comp.ID();
+    // Only add the outgoing edges, for each node.
+    auto &out_neighbors = scc_succ_map.at(scc_ids[scc_id]);
+    for (const auto &dest : out_neighbors) {
+      scc_graph.add_edge(comp, components[id_scc[dest]]);
+    }
   }
 
   return scc_graph;

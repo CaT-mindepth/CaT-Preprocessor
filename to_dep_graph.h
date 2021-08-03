@@ -15,7 +15,7 @@
 // dependency graph. The first argument stores the actual
 // dependency graph, and the second argument stores the list of stateful
 // variables inside that dependency graph.
-typedef std::pair< Graph< const clang::BinaryOperator * >, std::set<std::string> > DepGraphPassResult;
+typedef std::pair< Graph< const clang::BinaryOperator * >, std::set<const std::string> > DepGraphPassResult;
 
 // Turns a function body into a dependency graph.
 DepGraphPassResult function_to_dep_graph(const CompoundStmt *function_body);

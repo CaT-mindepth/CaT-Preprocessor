@@ -7,9 +7,9 @@
 // we shall try to merge it with domino's default UID management later.
 
 // Retrieves a fresh component UID.
-int get_comp_uid();
+unsigned get_comp_uid();
 
 // Init or (re)-set the UID to a higher value.
-int init_comp_uid(int s);
+void init_comp_uid(unsigned s);
 
 #endif // COMP_UID_H_
