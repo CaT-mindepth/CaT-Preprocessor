@@ -244,3 +244,46 @@ SCCGraph dep_graph_to_scc_graph(const DependencyGraph &dep_graph) {
 
   return scc_graph;
 }
+
+// Transform that converts a Domino program into a vector of dependency graphs,
+// each dependency graph representing a Domino function. The second argument in
+// the pair stands for the packet name given as argument to that Domino
+// function.
+std::string to_dep_graph_transform(
+    const TranslationUnitDecl *tu_decl,
+    std::vector<DependencyGraph>
+        &dep_graphs) {
+  const auto &id_set = identifier_census(tu_decl);
+
+  // Storage for returned string
+  std::string ret;
+
+  // Create unique identifier generator
+  UniqueIdentifiers unique_identifiers(id_set);
+
+  for (const auto *child_decl : dyn_cast<DeclContext>(tu_decl)->decls()) {
+    assert_exception(child_decl);
+    if (isa<VarDecl>(child_decl) or isa<RecordDecl>(child_decl)) {
+      // Pass through these declarations as is
+      ret += clang_decl_printer(child_decl) + ";";
+    } else if (isa<FunctionDecl>(child_decl) and
+               (not is_packet_func(dyn_cast<FunctionDecl>(child_decl)))) {
+      ret += generate_scalar_func_def(dyn_cast<FunctionDecl>(child_decl));
+    } else if (isa<FunctionDecl>(child_decl) and
+               (is_packet_func(dyn_cast<FunctionDecl>(child_decl)))) {
+      const auto *function_decl = dyn_cast<FunctionDecl>(child_decl);
+
+      // Extract function signature
+      assert_exception(function_decl->getNumParams() >= 1);
+      const auto *pkt_param = function_decl->getParamDecl(0);
+      const auto pkt_type =
+          function_decl->getParamDecl(0)->getType().getAsString();
+      const auto pkt_name = clang_value_decl_printer(pkt_param);
+
+      DepGraphPassResult dgpr = function_to_dep_graph(dyn_cast<CompoundStmt>(function_decl->getBody()));
+      dep_graphs.push_back(dgpr.first);
+
+    }
+  }
+  return ret;
+}

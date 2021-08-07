@@ -17,6 +17,7 @@
 #include "const_prop.h"
 #include "gen_used_fields.h"
 #include "rename_pkt_fields.h"
+#include "to_dep_graph.h"
 
 #include <csignal>
 
@@ -31,6 +32,10 @@
 #include "util.h"
 #include "pkt_func_transform.h"
 #include "compiler_pass.h"
+
+// Graph utilities
+#include "graph.h"
+#include "dep_graph.h"
 
 // For debugging purposes
 #include <cassert>
@@ -86,6 +91,7 @@ void populate_passes() {
   // what vars are stateful and what vars are stateless. The only way to mend this is to run this pass somewhere
   // later in the pipeline, right before we output code for synthesis.
   all_passes["rename_pkt_fields"] = [] () { return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform); };
+
 }
 
 PassFunctor get_pass_functor(const std::string & pass_name, const PassFactory & pass_factory) {
@@ -118,7 +124,7 @@ int main(int argc, const char **argv) {
 
     // Default pass list
     //expr_flattener
-    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,const_prop";
+    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,const_prop,rename_pkt_fields";
     // pass list w/o anything after SSA
     //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
 
@@ -137,17 +143,25 @@ int main(int argc, const char **argv) {
 
       /// Process them one after the other
       size_t i = 0;
-      std::cout << "total number of passes: " << passes_to_run.size() << std::endl;
-      std::cout << "order to run passes: " << default_pass_list << std::endl;
+      // std::cout << "total number of passes: " << passes_to_run.size() << std::endl;
+      // std::cout << "order to run passes: " << default_pass_list << std::endl;
       const auto & result = std::accumulate(passes_to_run.begin(), passes_to_run.end(), string_to_parse, [&i, &pass_list] (const auto & current_output, const auto & pass_functor __attribute__((unused)))
                                    { 
                                    std::cout << "processing pass " << i << ": " << pass_list[i] << std::endl;
                                    
                                    i++;
                                    return (*pass_functor())(current_output); });
-      std::cout << result << std::endl;
-      std::cout << "processing done." << std::endl; 
-      std::cout << "-------------------- dependency graph building --------------" << std::endl;
+     // std::cout << result << std::endl;
+      //std::cout << "processing done." << std::endl; 
+      //std::cout << "-------------------- dependency graph building --------------" << std::endl;
+
+      // Dependency graph construction pass.
+      std::vector<DependencyGraph> dep_graphs;
+      // 
+      // Issue here: compiler_pass.h:64:3 SinglePass(...) arguments all need to have const qualifier. I think we need wrap it around a unique_ptr<...> object.
+      // PassFunctor toDepGraphPass = [dep_graphs]() { return std::make_unique<SinglePass< std::vector<DependencyGraph> & >>(to_dep_graph_transform, dep_graphs); };
+      // std::cout << (*toDepGraphPass())(result) << std::endl;
+
       return EXIT_SUCCESS;
     } else {
       print_usage();

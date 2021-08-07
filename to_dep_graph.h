@@ -24,4 +24,13 @@ DepGraphPassResult function_to_dep_graph(const CompoundStmt *function_body);
 // variables into a SCC graph of components.
 SCCGraph dep_graph_to_scc_graph(const DependencyGraph &dep_graph);
 
+// Transform that converts a Domino program into a vector of dependency graphs,
+// each dependency graph representing a Domino function. The second argument in
+// the pair stands for the packet name given as argument to that Domino
+// function.
+std::string to_dep_graph_transform(
+    const TranslationUnitDecl *tu_decl,
+    std::vector<DependencyGraph>
+        &dep_graphs);
+
 #endif // TO_DEP_GRAPH_H_

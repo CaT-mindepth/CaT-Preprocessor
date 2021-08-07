@@ -23,8 +23,8 @@ ExprFlattenerHandler::flatten_body(const Stmt * function_body, const std::string
   std::string output = "";
   std::vector<std::string> new_decls = {};
 
-  std::cout << " expr_flattener: iterating through function " << pkt_name << std::endl;
-  std::cout << "  contents: " << clang_stmt_printer(function_body) << std::endl;
+  // std::cout << " expr_flattener: iterating through function " << pkt_name << std::endl;
+  // std::cout << "  contents: " << clang_stmt_printer(function_body) << std::endl;
   // iterate through function body
   assert_exception(isa<CompoundStmt>(function_body));
   for (const auto & child : function_body->children()) {
@@ -42,7 +42,7 @@ ExprFlattenerHandler::flatten_body(const Stmt * function_body, const std::string
     // Then append new pkt var declarations
     new_decls.insert(new_decls.end(), ret.new_decls.begin(), ret.new_decls.end());
   }
-  std::cout << "  ...done\n";
+  // std::cout << "  ...done\n";
   return make_pair("{" + output + "}", new_decls);
 }
 

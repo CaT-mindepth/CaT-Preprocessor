@@ -15,7 +15,7 @@
 std::string rename_pkt_fields_transform(const clang::TranslationUnitDecl * tu_decl);
 
 /// Main function for packet
-std::pair<std::string, std::vector<std::string>> rename_pkt_fields_body(const clang::CompoundStmt * function_body, const std::string & pkt_name __attribute__((unused)));
+std::string rename_pkt_fields_body(const clang::CompoundStmt * function_body, const std::string & pkt_name __attribute__((unused)));
 
 
 #endif // RENAME_PKT_FIELDS_H_

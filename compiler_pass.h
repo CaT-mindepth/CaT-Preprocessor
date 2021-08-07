@@ -179,10 +179,10 @@ class FixedPointPass : public CompilerPass {
       if (new_output == old_output) break;
       else {
 
-        std::cout << "FixedPointPass: old_output and new_output do not converge. " << std::endl;
-        std::cout << " old_output: " << old_output << std::endl;
-        std::cout << " new_output: " << new_output << std::endl;
-        std::cout << " -------------------------------------------" << std::endl;
+        // std::cout << "FixedPointPass: old_output and new_output do not converge. " << std::endl;
+        // std::cout << " old_output: " << old_output << std::endl;
+        // std::cout << " new_output: " << new_output << std::endl;
+        // std::cout << " -------------------------------------------" << std::endl;
       }
       old_output = new_output;
     }
