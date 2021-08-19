@@ -77,11 +77,25 @@ FlattenResult ExprFlattenerHandler::flatten(const clang::Expr * expr, const std:
       return flatten_cond_op(dyn_cast<ConditionalOperator>(expr), pkt_name);
     } else if (isa<BinaryOperator>(expr)) {
       return flatten_bin_op(dyn_cast<BinaryOperator>(expr), pkt_name);
+    } else if (isa<UnaryOperator>(expr)) {
+      return flatten_unary_op(dyn_cast<UnaryOperator>(expr), pkt_name);
     } else {
+      std::cout << "ExprFlattenerHandler::flatten: ERROR: expression is : " << clang_stmt_printer(expr) << std::endl;
       assert_exception(false);
       return {"", "", {}};
     }
   }
+}
+
+FlattenResult ExprFlattenerHandler::flatten_unary_op(const clang::UnaryOperator * un_op, const std::string & pkt_name) const {
+  // Handle statements of the form `b = !a`. Check if `a` is flat, if `a` is flat then
+  // we treat `b = !a` as flat. Otherwise, introduce temporary variable to store the
+  // flattened result of a, and let `b` be the negated value of that temporary.
+  const auto * subExpr = un_op->getSubExpr();
+  if (not is_flat(subExpr)) {
+    const auto ret_subExpr = flatten_to_atomic_expr(subExpr, pkt_name);    
+    return {std::string(UnaryOperator::getOpcodeStr(un_op->getOpcode())) + "(" + ret_subExpr.flat_expr + ")", ret_subExpr.new_defs, ret_subExpr.new_decls};
+  } else return {clang_stmt_printer(un_op), "", {}};
 }
 
 FlattenResult ExprFlattenerHandler::flatten_bin_op(const BinaryOperator * bin_op, const std::string & pkt_name) const {

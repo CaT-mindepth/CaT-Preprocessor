@@ -2,7 +2,11 @@
 
 #include "clang_utility_functions.h"
 #include "third_party/assert_exception.h"
+#include <algorithm>
 #include <iostream>
+#include <queue>
+#include <numeric> // std::accumulate
+
 using namespace clang;
 
 std::string
@@ -37,81 +41,59 @@ std::string AlgebraicSimplifier::ast_visit_cond_op(
 bool AlgebraicSimplifier::can_be_simplified(
     const BinaryOperator *bin_op) const {
   assert_exception(bin_op);
-  const auto *lhs = bin_op->getLHS();
-  const auto *rhs = bin_op->getRHS();
-  bool canBeSimplified = isa<IntegerLiteral>(lhs) or isa<IntegerLiteral>(rhs);
-  // A BinaryOperator subclasses Expr class, so we can use
-  // Expr::EvaluateAsInt to see if the given BinaryOperator object
-  // reduces to a constant.
-  clang::Expr::EvalResult er;
-  canBeSimplified = canBeSimplified || bin_op->EvaluateAsInt(er, *(this->ctx));
-  return canBeSimplified;
+  return true; // TODO: delete this function
+}
+
+bool AlgebraicSimplifier::safe_to_convert(const clang::BinaryOperator *bin_op) {
+  // Cannot contain ternary or assignment statements
+  // bool stmt_type_census<T>(const clang::Stmt *stmt) returns true iff bin_op
+  // contains stmt of type T.
+  using clang::BinaryOperatorKind;
+  std::set<clang::BinaryOperatorKind> unsafe_operators = {
+      BO_Assign,    BO_AddAssign, BO_MulAssign, BO_DivAssign, BO_RemAssign,
+      BO_SubAssign, BO_AndAssign, BO_OrAssign,  BO_XorAssign, BO_Cmp,
+      BO_Comma,     BO_EQ,        BO_PtrMemD,   BO_PtrMemI,   BO_ShlAssign,
+      BO_ShrAssign, BO_LT,        BO_GT,        BO_LE,        BO_GE};
+  return //(!stmt_type_census<ConditionalOperator>(bin_op)) && // TODO:
+         // commented out for compilation.
+      (!binop_contains(bin_op, unsafe_operators));
+}
+
+std::string
+AlgebraicSimplifier::ast_visit_un_op(const clang::UnaryOperator *un_op) {
+  // handle double negations or double minus signs.
+  // note that, here whether to use a subExpr with IgnoreParenImpCases
+  // is critical, since the parentheses will be printed in the return result (or
+  // not) depending on the choice.
+  const auto *subExpr = un_op->getSubExpr()->IgnoreParenImpCasts();
+  const auto opcode_str =
+      std::string(UnaryOperator::getOpcodeStr(un_op->getOpcode()));
+  if (!(isa<UnaryOperator>(subExpr)))
+    return opcode_str + ast_visit_stmt(un_op->getSubExpr());
+  const auto *sub_un_op = dyn_cast<UnaryOperator>(subExpr);
+  const auto opcode = un_op->getOpcode();
+  const auto sub_opcode = sub_un_op->getOpcode();
+  if (opcode == sub_opcode) {
+    // Double negation or double minus signs. We can now simplify them out.
+    // Note that now we need to visit the sub-expression of sub_un_op, not
+    // un_op.
+    return ast_visit_stmt(sub_un_op->getSubExpr());
+  } else {
+    return opcode_str + ast_visit_stmt(un_op->getSubExpr());
+  }
 }
 
 std::string AlgebraicSimplifier::simplify_simple_bin_op(
     const BinaryOperator *bin_op) const {
   assert_exception(can_be_simplified(bin_op));
   const auto opcode = bin_op->getOpcode();
-  const auto *lhs = bin_op->getLHS();
-  const auto *rhs = bin_op->getRHS();
+  const auto *lhs = bin_op->getLHS()->IgnoreParenImpCasts();
+  const auto *rhs = bin_op->getRHS()->IgnoreParenImpCasts();
+
+  //std::cout << "algebra simplifier: simplifying binary operation " << clang_stmt_printer(bin_op) << std::endl;
+
   // Here lhs, rhs stand for left/right operand of a binary arithmetic
   // operation, not an assignment.
-
-  const auto getIntVal = [](const IntegerLiteral *l) {
-    return l->getValue().getSExtValue();
-  };
-  const auto evalInts = [opcode, bin_op](const long long &lhs,
-                                         const long long &rhs) {
-    std::cout << "evalInts" << std::endl;
-    switch (opcode) {
-    case clang::BinaryOperatorKind::BO_Add:
-      return lhs + rhs;
-    case clang::BinaryOperatorKind::BO_Mul:
-      return lhs * rhs;
-    case clang::BinaryOperatorKind::BO_Sub:
-      return lhs - rhs;
-    case clang::BinaryOperatorKind::BO_Div:
-      return lhs / rhs;
-    case clang::BinaryOperatorKind::BO_Rem:
-      return lhs % rhs;
-    case clang::BinaryOperatorKind::BO_And:
-      return lhs & rhs;
-    case clang::BinaryOperatorKind::BO_Or:
-      return lhs | rhs;
-    case clang::BinaryOperatorKind::BO_Xor:
-      return lhs ^ rhs;
-    case clang::BinaryOperatorKind::BO_LAnd:
-      return (long long)((bool)lhs && (bool)rhs);
-    case clang::BinaryOperatorKind::BO_LOr:
-      return (long long)((bool)lhs || (bool)rhs);
-    case clang::BinaryOperatorKind::BO_EQ:
-      return (long long)(lhs == rhs);
-    case clang::BinaryOperatorKind::BO_LE:
-      return (long long)(lhs <= rhs);
-    case clang::BinaryOperatorKind::BO_LT:
-      return (long long)(lhs < rhs);
-    case clang::BinaryOperatorKind::BO_GE:
-      return (long long)(lhs >= rhs);
-    case clang::BinaryOperatorKind::BO_GT:
-      return (long long)(lhs > rhs);
-    case clang::BinaryOperatorKind::BO_Shl:
-      return lhs << rhs;
-    case clang::BinaryOperatorKind::BO_Shr:
-      return lhs >> rhs;
-    default:
-      throw std::logic_error(
-          "algebraic_simplifier: cannot evaluate constant binary op: " +
-          clang_stmt_printer(bin_op));
-    }
-  };
-  // If expression involves all constants then calculate.
-  // if (isa<IntegerLiteral>(lhs) and isa<IntegerLiteral>(rhs)) {
-  //  std::cout << "algebraic simplifier: detected const expr, computing its
-  //  result...\n"; return
-  //  std::to_string(evalInts(getIntVal(dyn_cast<IntegerLiteral>(lhs)),
-  //  getIntVal(dyn_cast<IntegerLiteral>(rhs))));
-  // }
-
   // if RHS and LHS are constants then also calculate.
   // We use clang's built-in Expr evaluator to do this.
   // (Recall that BinaryOperator subclasses Expr, so it is
@@ -129,12 +111,12 @@ std::string AlgebraicSimplifier::simplify_simple_bin_op(
         dyn_cast<IntegerLiteral>(lhs)->getValue().getSExtValue() == 1) {
       // 1 * anything = anything
       // 1 && anything = anything
-      return clang_stmt_printer(rhs);
+      return clang_stmt_printer(bin_op->getRHS());
     } else if (isa<IntegerLiteral>(rhs) and
                dyn_cast<IntegerLiteral>(rhs)->getValue().getSExtValue() == 1) {
       // anything * 1 = anything
       // anything && 1 = anything
-      return clang_stmt_printer(lhs);
+      return clang_stmt_printer(bin_op->getLHS());
     }
   }
 
@@ -145,12 +127,12 @@ std::string AlgebraicSimplifier::simplify_simple_bin_op(
         dyn_cast<IntegerLiteral>(lhs)->getValue().getSExtValue() == 0) {
       // 0 + anything = anything
       // 0 ||  anything = anything
-      return clang_stmt_printer(rhs);
+      return clang_stmt_printer(bin_op->getRHS());
     } else if (isa<IntegerLiteral>(rhs) and
                dyn_cast<IntegerLiteral>(rhs)->getValue().getSExtValue() == 0) {
       // anything + 0 = anything
       // anything || 0 = anything
-      return clang_stmt_printer(lhs);
+      return clang_stmt_printer(bin_op->getLHS());
     }
   }
 
@@ -173,6 +155,63 @@ std::string AlgebraicSimplifier::simplify_simple_bin_op(
       return clang_stmt_printer(bin_op->getLHS()) +
              std::string(bin_op->getOpcodeStr()) + std::to_string(rhsVal);
     }
+  }
+
+  // Finally, try some rewrite rules using commutativity and associativity.
+  // If an expression consists of only a single operator, then "flatten"
+  // them out, eliminating any associativity problems.
+  // It suffices to only do this locally, as any subexpression of this
+  // expression will also obey the same property, so we fixpoint iterate until
+  // convergence.
+  //
+  // Since traversing the expression tree is rather expensive when the
+  // expression is long, we only simplify four basic operators for now.
+  //std::cout << "algebra simplifier: trying rewrite rules" << std::endl;
+  if (binop_contains_only(bin_op, {clang::BinaryOperatorKind::BO_Add}) ||
+      binop_contains_only(bin_op, {clang::BinaryOperatorKind::BO_Mul}) ||
+      binop_contains_only(bin_op, {clang::BinaryOperatorKind::BO_LOr}) ||
+      binop_contains_only(bin_op, {clang::BinaryOperatorKind::BO_LAnd})) {
+    // allVars is a set, so already lexicographic.
+    std::cout << "binop_contains_only: " << clang_stmt_printer(bin_op) << std::endl;
+    const auto allVars =
+        gen_var_list(bin_op, {{VariableType::FUNCTION_PARAMETER, true},
+                              {VariableType::PACKET, true},
+                              {VariableType::STATE_ARRAY, true},
+                              {VariableType::STATE_SCALAR, true}});
+    const auto allConsts = get_constants_in(bin_op);
+    std::string ret = "";
+    for (const auto & cs : allConsts) ret += (cs + "+");
+    for (const auto & vs : allVars) ret += (vs + "+");
+    return ret.substr(0, ret.size() - 1);
+  }
+
+  // c*sum(x1,x2,...) = sum(c*x1,c*x2,..)
+  //if (opcode == clang::BinaryOperatorKind::BO_Mul && isa<IntegerLiteral>(lhs) && binop_contains_only(rhs, {clang::BinaryOperatorKind::BO_Add})) {
+  //
+  //}
+  // Resort operands so that they follow lexicographic order
+  // when the operator is commutative. This lexicographically
+  // sorts an entire subexpression when called in fixpoint iteration style.
+
+  // Three cases: a + b, a + C, C + a, where a, b are vars and C is const.
+  // a + b: compare a, b lexicographically.
+  const auto isValOrConst = [](const Expr *e) {
+    return (isa<clang::IntegerLiteral>(e) || isa<clang::MemberExpr>(e) ||
+            isa<clang::DeclRefExpr>(e));
+  };
+  if (isValOrConst(lhs) && isValOrConst(rhs) &&
+      (opcode == clang::BinaryOperatorKind::BO_Add ||
+       opcode == clang::BinaryOperatorKind::BO_Mul ||
+       opcode == clang::BinaryOperatorKind::BO_LAnd ||
+       opcode == clang::BinaryOperatorKind::BO_LOr)) {
+
+    const auto lhsStr = clang_stmt_printer(lhs);
+    const auto rhsStr = clang_stmt_printer(rhs);
+    // lexicographic comparison.
+    if (lhsStr <= rhsStr)
+      return lhsStr + std::string(bin_op->getOpcodeStr()) + rhsStr;
+    else
+      return rhsStr + std::string(bin_op->getOpcodeStr()) + lhsStr;
   }
 
   return clang_stmt_printer(bin_op->getLHS()) +

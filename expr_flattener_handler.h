@@ -60,6 +60,10 @@ class ExprFlattenerHandler {
   /// on the left and right halves
   FlattenResult flatten_bin_op(const clang::BinaryOperator * bin_op, const std::string & pkt_name) const;
 
+  /// Flatten unary operation (!)
+  FlattenResult flatten_unary_op(const clang::UnaryOperator * un_op, const std::string & pkt_name) const;
+
+
   /// Object that generates unique identifiers
   UniqueIdentifiers unique_identifiers_ = UniqueIdentifiers(std::set<std::string>());
 };

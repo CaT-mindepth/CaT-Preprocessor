@@ -37,6 +37,11 @@ std::pair<std::string, std::vector<std::string>> add_stateful_flanks(const Compo
     var_expr_map[clang_stmt_printer(lhs)] = clang_stmt_printer(rhs);
   }
 
+  //std::cout << "stateful_flanks: var_expr_map: " << std::endl;
+  //for (const auto & keyVal : var_expr_map) {
+  //  std::cout << keyVal.first << " -> " << keyVal.second << std::endl;
+  //}
+
   // 1. Identify all stateful variables in the program.
   // 2. Create a read prologue for all of them: each state variable is read into a packet temporary.
   // 3. Create a write epilogue for all of them: the packet temporary from 2. is written back into state.
@@ -74,6 +79,8 @@ std::pair<std::string, std::vector<std::string>> add_stateful_flanks(const Compo
         if (isa<ArraySubscriptExpr>(lhs)) {
           assert_exception(isa<MemberExpr>(dyn_cast<ArraySubscriptExpr>(lhs)->getIdx()->IgnoreParenImpCasts()));
           const auto subscript_var = clang_stmt_printer(dyn_cast<ArraySubscriptExpr>(lhs)->getIdx());
+          const auto array_var_base = clang_stmt_printer(dyn_cast<ArraySubscriptExpr>(lhs)->getBase());
+          const auto full_array_var = array_var_base + "[" + subscript_var + "]";
           subscript_vars.emplace(subscript_var);
           const auto pkt_field_in_subscript = dyn_cast<MemberExpr>(dyn_cast<ArraySubscriptExpr>(lhs)->getIdx()->IgnoreParenImpCasts())->getMemberDecl()->getNameAsString();
 
@@ -86,10 +93,10 @@ std::pair<std::string, std::vector<std::string>> add_stateful_flanks(const Compo
           const auto new_subscript_var   = pkt_name + "." + new_tmp_var_for_subscript;
 
           // Create read and write flanks for it
-          if (var_expr_map.find(subscript_var) == var_expr_map.end()) {
+          if (var_expr_map.find(full_array_var) == var_expr_map.end()) {
             throw std::logic_error(" subscript_var " + subscript_var + " not found in var_expr_map");
           }
-          read_prologue += new_subscript_var + " = " + var_expr_map.at(subscript_var) + ";";
+          read_prologue += new_subscript_var + " = " + var_expr_map.at(full_array_var) + ";";
           read_prologue += pkt_tmp_var + " = " + replace_subscript_expr(dyn_cast<ArraySubscriptExpr>(lhs), new_subscript_var) + ";";
           write_epilogue += replace_subscript_expr(dyn_cast<ArraySubscriptExpr>(lhs), new_subscript_var) + " = " + pkt_tmp_var + ";";
 

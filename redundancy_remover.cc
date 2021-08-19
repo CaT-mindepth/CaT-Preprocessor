@@ -62,7 +62,7 @@ std::string redundancy_remover_stmt(const Stmt * stmt) {
     const auto * un_op = dyn_cast<UnaryOperator>(stmt);
     assert_exception(un_op->isArithmeticOp());
     const auto opcode_str = std::string(UnaryOperator::getOpcodeStr(un_op->getOpcode()));
-    assert_exception(opcode_str == "!");
+    //assert_exception(opcode_str == "!");
     return opcode_str + redundancy_remover_stmt(un_op->getSubExpr());
   } else if (isa<ImplicitCastExpr>(stmt)) {
     return redundancy_remover_stmt(dyn_cast<ImplicitCastExpr>(stmt)->getSubExpr());

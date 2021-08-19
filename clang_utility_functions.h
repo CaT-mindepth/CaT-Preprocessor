@@ -8,7 +8,8 @@
 
 #include "clang/AST/Decl.h"
 #include "clang/AST/Stmt.h"
-
+#include "clang/AST/OperationKinds.h"
+#include "clang/AST/Expr.h"
 /// Enum class to represent Variable type
 /// PACKET is for the names of all packet fields (in identifier_census)
 /// and packet fields prefixed with "pkt." (in gen_var_list)
@@ -56,6 +57,19 @@ std::set<std::string> identifier_census(const clang::TranslationUnitDecl * decl,
 template <typename T,
           typename = std::enable_if_t<std::is_base_of<clang::Stmt, T>::value>>
 bool stmt_type_census(const clang::Stmt *stmt);
+
+/// Gets all constant values inside a statement. Complements `gen_var_list`
+/// which works for only variables.
+std::set<const std::string> get_constants_in(const clang::Stmt * expr);
+
+/// Decide if binary operatoion `bin_op` contains
+/// only operators in the list.
+bool binop_contains_only(const clang::BinaryOperator * bin_op, const std::set<clang::BinaryOperatorKind> & operators);
+
+/// Decide if binary operation `bin_op` contains
+/// any sub-operator in list `operators`.
+/// contains_alternate_stmt: Returns false if bin_op contains a statement that isn't a clang::BinaryOperator.
+bool binop_contains(const clang::BinaryOperator * bin_op, const std::set<clang::BinaryOperatorKind> & operators, bool contains_alternate_stmt = true);
 
 /// Determine all variables (either packet or state) used within a clang::Stmt,
 std::set<std::string> gen_var_list(const clang::Stmt * stmt,

@@ -68,6 +68,8 @@ void IfConversionHandler::if_convert(std::string & current_stream,
       if_convert(current_stream, current_decls, pred_within_else_block, if_stmt->getElse(), pkt_name);
     }
   } else if (isa<BinaryOperator>(stmt)) {
+    std::cout << "if_convert: visiting statemenent " << clang_stmt_printer(stmt) << std::endl;
+    assert_exception(!isa<DeclStmt>(stmt));
     current_stream += if_convert_atomic_stmt(dyn_cast<BinaryOperator>(stmt), predicate);
   } else if (isa<DeclStmt>(stmt)) {
     // Just append statement as is, but check that this only happens at the

@@ -17,6 +17,7 @@
 #include "const_prop.h"
 #include "gen_used_fields.h"
 #include "rename_pkt_fields.h"
+#include "dce.h"
 #include "to_dep_graph.h"
 
 #include <csignal>
@@ -68,7 +69,7 @@ void populate_passes() {
   // We need to explicitly call populate_passes instead of using an initializer list
   // to populate PassMap all_passes because initializer lists don't play well with move-only
   // types like unique_ptrs (http://stackoverflow.com/questions/9618268/initializing-container-of-unique-ptrs-from-initializer-list-fails-with-gcc-4-7)
-  all_passes["cse"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), csi_transform, cse_transform})); };
+  all_passes["cse"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), csi_transform, cse_transform, dce_transform})); };
   all_passes["redundancy_remover"]=[] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(redundancy_remover_transform); };
   all_passes["array_validator"]  = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& ArrayValidator::ast_visit_transform, ArrayValidator(), _1)); };
   all_passes["validator"]        = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& Validator::ast_visit_transform, Validator(), _1)); };
@@ -83,15 +84,16 @@ void populate_passes() {
   all_passes["ssa"]              = [] () { return std::make_unique<DefaultSinglePass>(ssa_transform); };
   all_passes["echo"]             = [] () { return std::make_unique<DefaultSinglePass>(clang_decl_printer); };
   all_passes["gen_used_fields"]  = [] () { return std::make_unique<DefaultSinglePass>(gen_used_field_transform); };
-  //all_passes["const_prop"]       = [] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(const_prop_transform); };
-  all_passes["const_prop"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), const_prop_transform})); };
+  all_passes["const_prop"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), const_prop_transform, dce_transform})); };
+  all_passes["dce"]=[] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(dce_transform); };
 
-  // TODO: We CANNOT currently use this pass!!! It renames "p.***" into 'p_***' but this modification will make
+  // Caution: This pass is designed as the last pass that prints out
+  // the input file to CaT codegen. It renames "p.***" into 'p_***' but this modification will make
   // the local variables lose type MemberExpr which then breaks the identifiers census that tells later passes
   // what vars are stateful and what vars are stateless. The only way to mend this is to run this pass somewhere
   // later in the pipeline, right before we output code for synthesis.
   all_passes["rename_pkt_fields"] = [] () { return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform); };
-
+  
 }
 
 PassFunctor get_pass_functor(const std::string & pass_name, const PassFactory & pass_factory) {
@@ -124,7 +126,7 @@ int main(int argc, const char **argv) {
 
     // Default pass list
     //expr_flattener
-    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,const_prop,rename_pkt_fields";
+    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa";//,expr_propagater,expr_flattener,cse,dce";//rename_pkt_fields";
     // pass list w/o anything after SSA
     //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
 
@@ -148,15 +150,17 @@ int main(int argc, const char **argv) {
       const auto & result = std::accumulate(passes_to_run.begin(), passes_to_run.end(), string_to_parse, [&i, &pass_list] (const auto & current_output, const auto & pass_functor __attribute__((unused)))
                                    { 
                                    std::cout << "processing pass " << i << ": " << pass_list[i] << std::endl;
-                                   
                                    i++;
-                                   return (*pass_functor())(current_output); });
-     // std::cout << result << std::endl;
+                                   const auto p = (*pass_functor())(current_output); 
+                                   std::cout << "program: " << p << std::endl;
+                                   std::cout << "...pass " << i << " done.\n";
+                                   return p; });
+     std::cout << result << std::endl;
       //std::cout << "processing done." << std::endl; 
       //std::cout << "-------------------- dependency graph building --------------" << std::endl;
 
       // Dependency graph construction pass.
-      std::vector<DependencyGraph> dep_graphs;
+      // std::vector<DependencyGraph> dep_graphs;
       // 
       // Issue here: compiler_pass.h:64:3 SinglePass(...) arguments all need to have const qualifier. I think we need wrap it around a unique_ptr<...> object.
       // PassFunctor toDepGraphPass = [dep_graphs]() { return std::make_unique<SinglePass< std::vector<DependencyGraph> & >>(to_dep_graph_transform, dep_graphs); };

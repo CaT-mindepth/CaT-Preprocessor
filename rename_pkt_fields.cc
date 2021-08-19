@@ -24,9 +24,9 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
   UniqueIdentifiers unique_identifiers(id_set);
 
   // Identifiers census
-  std::cout
-      << "rename_pkt_fields_transform: processing packet and stateful vars: "
-      << std::endl;
+  //std::cout
+  //    << "rename_pkt_fields_transform: processing packet and stateful vars: "
+  //    << std::endl;
   const VariableTypeSelector packetVarsSel = {
       {VariableType::STATE_SCALAR, false},
       {VariableType::STATE_ARRAY, false},
@@ -43,7 +43,7 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
   std::set<std::string> branchVars;
   std::set<std::string> statelessVars =
       identifier_census(tu_decl, packetVarsSel);
-  std::cout << "rename_pkt_fields_transform: outputting vars..." << std::endl;
+  //std::cout << "rename_pkt_fields_transform: outputting vars..." << std::endl;
   for (const auto &statelessVar : statelessVars) {
     if (statelessVar.rfind("_br", 0) != std::string::npos) {
       branchVars.insert(statelessVar);

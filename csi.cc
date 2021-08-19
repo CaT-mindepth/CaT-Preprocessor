@@ -175,8 +175,13 @@ bool check_un_op(const UnaryOperator * un1, const UnaryOperator * un2,
   // Extract arguments
   const auto * un1_sub_expr = un1->getSubExpr()->IgnoreParenImpCasts();
   const auto * un2_sub_expr = un2->getSubExpr()->IgnoreParenImpCasts();
-  assert_exception(isa<MemberExpr>(un1_sub_expr) or isa<IntegerLiteral>(un1_sub_expr));
-  assert_exception(isa<MemberExpr>(un2_sub_expr) or isa<IntegerLiteral>(un2_sub_expr));
+  // std::cout << "check_un_op: expression 1 is " << clang_stmt_printer(un1_sub_expr) << std::endl;
+  // std::cout << "check_un_op: expression 2 is " << clang_stmt_printer(un2_sub_expr) << std::endl;
+
+  // ruijief: TODO: this is in the original Domino codebase but not necessarily right.
+  // Why? Because expression can also be a ">" or "<".
+  // assert_exception(isa<MemberExpr>(un1_sub_expr) or isa<IntegerLiteral>(un1_sub_expr));
+  // assert_exception(isa<MemberExpr>(un2_sub_expr) or isa<IntegerLiteral>(un2_sub_expr));
 
   // Recursively check for equality
   if (isa<MemberExpr>(un1_sub_expr) and isa<MemberExpr>(un2_sub_expr)) return check_pkt_var(clang_stmt_printer(un1_sub_expr), clang_stmt_printer(un2_sub_expr), var_map);

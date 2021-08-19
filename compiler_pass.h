@@ -103,6 +103,7 @@ class SinglePass  : public CompilerPass {
                           const clang::Diagnostic & diagnostic) override {
       llvm::SmallString<100> OutStr;
       diagnostic.FormatDiagnostic(OutStr);
+      std::cout << "ERROR ERROR CLANG ERROR: " << std::string(OutStr.str()) << std::endl;
       throw std::logic_error("Clang compiler error: " + std::string(OutStr.str()));
     }
   };

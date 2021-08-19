@@ -136,17 +136,73 @@ identifier_census(const clang::TranslationUnitDecl *decl,
   return identifiers;
 }
 
-template <typename T>
-bool stmt_type_census(const Stmt *stmt) {
+template <typename T> bool stmt_type_census(const Stmt *stmt) {
   if (isa<T>(stmt)) {
     return true;
   } else {
     bool containsT = false;
-    for (const auto * child : stmt->children()) {
+    for (const auto *child : stmt->children()) {
       containsT = containsT || stmt_type_census<T>(child);
     }
     return containsT;
   }
+}
+
+std::set<const std::string> get_constants_in(const clang::Stmt *expr) {
+  if (isa<IntegerLiteral>(expr))
+    return {std::to_string(
+        (dyn_cast<IntegerLiteral>(expr))->getValue().getSExtValue())};
+  else {
+    std::set<const std::string> consts;
+    for (const auto *ch : expr->children()) {
+      const auto &ch_consts = get_constants_in(ch);
+      consts.insert(ch_consts.begin(), ch_consts.end());
+    }
+    return consts;
+  }
+}
+
+bool binop_contains_only(const clang::BinaryOperator *bin_op,
+                         const std::set<clang::BinaryOperatorKind> &operators) {
+  const auto opcode = bin_op->getOpcode();
+  if (operators.find(opcode) == operators.end()) {
+   // std::cout << "binop_contains_only: operator " << std::string(bin_op->getOpcodeStr()) << "not in list" << std::endl;
+    return false;
+  } else {
+    //std::cout << "binop_contains_only: good on " << clang_stmt_printer(bin_op) << std::endl;
+  }
+  bool ok = true;
+  const auto *lhs = bin_op->getLHS()->IgnoreParenImpCasts();
+  const auto *rhs = bin_op->getRHS()->IgnoreParenImpCasts();
+  for (const auto *child : {lhs, rhs}) {
+    //std::cout << "binop_contains_only: " << clang_stmt_printer(child) << std::endl;
+    if (isa<clang::BinaryOperator>(child)) {
+      ok = ok && binop_contains_only(dyn_cast<clang::BinaryOperator>(child),
+                                     operators);
+    } else {
+      ok = ok && (isa<clang::MemberExpr>(child) ||
+           isa<clang::DeclRefExpr>(child) || isa<IntegerLiteral>(child));
+    }
+  }
+  return ok;
+}
+
+bool binop_contains(const clang::BinaryOperator *bin_op,
+                    const std::set<clang::BinaryOperatorKind> &operators,
+                    bool contains_alternate_stmt) {
+  const auto opcode = bin_op->getOpcode();
+  for (const auto &op : operators)
+    if (opcode == op)
+      return true;
+  bool contains = false;
+  for (const auto *ch : bin_op->children())
+    if (isa<clang::BinaryOperator>(ch)) {
+      contains = contains || binop_contains(dyn_cast<clang::BinaryOperator>(ch),
+                                            operators, contains_alternate_stmt);
+    } else {
+      contains = contains || !(contains_alternate_stmt);
+    }
+  return contains;
 }
 
 std::set<std::string> gen_var_list(const Stmt *stmt,
@@ -209,7 +265,7 @@ std::set<std::string> gen_var_list(const Stmt *stmt,
     assert_exception(un_op->isArithmeticOp());
     const auto opcode_str =
         std::string(UnaryOperator::getOpcodeStr(un_op->getOpcode()));
-    assert_exception(opcode_str == "!");
+    // assert_exception(opcode_str == "!");
     return gen_var_list(un_op->getSubExpr(), var_selector);
   } else if (isa<ImplicitCastExpr>(stmt)) {
     return gen_var_list(dyn_cast<ImplicitCastExpr>(stmt)->getSubExpr(),
@@ -267,7 +323,7 @@ std::string replace_vars(const clang::Expr *expr,
     assert_exception(un_op->isArithmeticOp());
     const auto opcode_str =
         std::string(UnaryOperator::getOpcodeStr(un_op->getOpcode()));
-    assert_exception(opcode_str == "!");
+    // assert_exception(opcode_str == "!");
     return opcode_str +
            replace_vars(un_op->getSubExpr(), repl_map, var_selector);
   } else if (isa<ConditionalOperator>(expr)) {

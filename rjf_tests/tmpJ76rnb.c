@@ -1,0 +1,41 @@
+int input_traffic_Bytes = 0;
+int sum_rtt_Tr = 0;
+int num_pkts_with_rtt = 0;
+struct Packet {
+  int size_bytes;
+  int rtt;
+  int _br_tmp0;
+  int input_traffic_Bytes0;
+  int sum_rtt_Tr0;
+  int num_pkts_with_rtt0;
+  int input_traffic_Bytes00;
+  int sum_rtt_Tr00;
+  int num_pkts_with_rtt00;
+  int input_traffic_Bytes01;
+  int _br_tmp00;
+  int rtt0;
+  int rtt1;
+  int sum_rtt_Tr01;
+  int num_pkts_with_rtt01;
+  int tmp0;
+  int tmp1;
+  int tmp2;
+  int tmp3;
+  int tmp4;
+  int tmp5;
+};
+void func(struct Packet p) {
+  p.input_traffic_Bytes00 = input_traffic_Bytes;
+  p.sum_rtt_Tr00 = sum_rtt_Tr;
+  p.num_pkts_with_rtt00 = num_pkts_with_rtt;
+  p.tmp0 = !(p.rtt < 30);
+  p._br_tmp00 = !(p.tmp0);
+  -11111 = -11111;
+  p.rtt0 = (p._br_tmp00) ? -11111 : p.rtt;
+  p.rtt1 = (p._br_tmp00) ? (3) : p.rtt0;
+  p.tmp4 = p.sum_rtt_Tr00 + p.rtt1;
+  p.tmp5 = p.num_pkts_with_rtt00 + 1;
+  input_traffic_Bytes = p.input_traffic_Bytes00 + p.size_bytes;
+  sum_rtt_Tr = (p._br_tmp00) ? p.tmp4 : p.sum_rtt_Tr00;
+  num_pkts_with_rtt = (p._br_tmp00) ? p.tmp5 : p.num_pkts_with_rtt00;
+}

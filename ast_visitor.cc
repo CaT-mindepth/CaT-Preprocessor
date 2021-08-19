@@ -87,7 +87,7 @@ std::string AstVisitor::ast_visit_integer_literal(const IntegerLiteral * integer
 std::string AstVisitor::ast_visit_un_op(const UnaryOperator * un_op) {
   assert_exception(un_op->isArithmeticOp());
   const auto opcode_str = std::string(UnaryOperator::getOpcodeStr(un_op->getOpcode()));
-  assert_exception(opcode_str == "!");
+  //assert_exception(opcode_str == "!"); // ruijief note: this is here probably becuase Domino ALU might not handle expressions other than '!'.
   return opcode_str + ast_visit_stmt(un_op->getSubExpr());
 }
 
