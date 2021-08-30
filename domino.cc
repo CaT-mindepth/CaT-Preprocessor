@@ -16,6 +16,7 @@
 #include "csi.h"
 #include "const_prop.h"
 #include "gen_used_fields.h"
+#include "reduce_var_types_helper.h"
 #include "rename_pkt_fields.h"
 #include "dce.h"
 #include "dde.h"
@@ -92,8 +93,8 @@ void populate_passes() {
   // the local variables lose type MemberExpr which then breaks the identifiers census that tells later passes
   // what vars are stateful and what vars are stateless. The only way to mend this is to run this pass somewhere
   // later in the pipeline, right before we output code for synthesis.
-  all_passes["rename_pkt_fields"] = [] () { return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform); };
-  
+  //all_passes["rename_pkt_fields"] = [] () { return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform); };
+  all_passes["rename_pkt_fields"] = [] () { return std::make_unique<CompoundPass> (std::vector<DefaultTransformer>({reduce_var_types_helper_transform, rename_pkt_fields_transform})); };
 }
 
 PassFunctor get_pass_functor(const std::string & pass_name, const PassFactory & pass_factory) {
@@ -126,7 +127,7 @@ int main(int argc, const char **argv) {
 
     // Default pass list
     //expr_flattener
-    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,dce,rename_pkt_fields";
+    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,dce,dde,rename_pkt_fields";
     // pass list w/o anything after SSA
     //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
 

@@ -53,7 +53,7 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
   }
   std::cout << "# state variables start" << std::endl;
   for (const auto &stateVar : stateVars) {
-    std::cout << "int " << stateVar << std::endl;
+    std::cout << "int " << stateVar << ";" << std::endl;
   }
   std::cout << "# state variables end" << std::endl;
   for (const auto & branchVar : branchVars) {
