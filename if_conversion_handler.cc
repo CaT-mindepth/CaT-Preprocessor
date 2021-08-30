@@ -93,6 +93,7 @@ std::string IfConversionHandler::if_convert_atomic_stmt(const BinaryOperator * s
   assert_exception(not stmt->isCompoundAssignmentOp());
 
   // Create predicated version of BinaryOperator
+
   const std::string lhs = clang_stmt_printer(dyn_cast<BinaryOperator>(stmt)->getLHS());
   const std::string rhs = "(" + predicate + " ? (" + clang_stmt_printer(stmt->getRHS()) + ") :  " + lhs + ")";
   return (lhs + " = " + rhs + ";");

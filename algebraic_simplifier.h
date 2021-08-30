@@ -29,7 +29,7 @@ private:
 
   /// Simplify a bin op where the LHS and RHS are both simple
   // i.e. IntegerLiteral, MemberExpr, or DeclRefExpr
-  std::string simplify_simple_bin_op(const clang::BinaryOperator *bin_op) const;
+  std::string simplify_simple_bin_op(const clang::BinaryOperator *bin_op);
 };
 
 #endif // ALGEBRAIC_SIMPLIFIER_H_

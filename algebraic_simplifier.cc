@@ -22,6 +22,7 @@ AlgebraicSimplifier::ast_visit_bin_op(const clang::BinaryOperator *bin_op) {
 
 std::string AlgebraicSimplifier::ast_visit_cond_op(
     const clang::ConditionalOperator *cond_op) {
+  //std::cout << "****** algebraic simplifier: ast_visit_cond_op called on stmt " << clang_stmt_printer(cond_op) << std::endl;    
   if (isa<IntegerLiteral>(cond_op->getCond()) and
       dyn_cast<IntegerLiteral>(cond_op->getCond())->getValue().getSExtValue() ==
           1) {
@@ -84,7 +85,7 @@ AlgebraicSimplifier::ast_visit_un_op(const clang::UnaryOperator *un_op) {
 }
 
 std::string AlgebraicSimplifier::simplify_simple_bin_op(
-    const BinaryOperator *bin_op) const {
+    const BinaryOperator *bin_op) {
   assert_exception(can_be_simplified(bin_op));
   const auto opcode = bin_op->getOpcode();
   const auto *lhs = bin_op->getLHS()->IgnoreParenImpCasts();
@@ -147,12 +148,12 @@ std::string AlgebraicSimplifier::simplify_simple_bin_op(
              std::to_string(rhsVal);
     } else {
       return std::to_string(lhsVal) + std::string(bin_op->getOpcodeStr()) +
-             clang_stmt_printer(bin_op->getRHS());
+             ast_visit_stmt(bin_op->getRHS());
     }
   } else {
     if (rhsIsConst) {
       long long rhsVal = erRHS.Val.getInt().getSExtValue();
-      return clang_stmt_printer(bin_op->getLHS()) +
+      return ast_visit_stmt(bin_op->getLHS()) +
              std::string(bin_op->getOpcodeStr()) + std::to_string(rhsVal);
     }
   }
@@ -172,7 +173,7 @@ std::string AlgebraicSimplifier::simplify_simple_bin_op(
       binop_contains_only(bin_op, {clang::BinaryOperatorKind::BO_LOr}) ||
       binop_contains_only(bin_op, {clang::BinaryOperatorKind::BO_LAnd})) {
     // allVars is a set, so already lexicographic.
-    std::cout << "binop_contains_only: " << clang_stmt_printer(bin_op) << std::endl;
+    // std::cout << "binop_contains_only: " << clang_stmt_printer(bin_op) << std::endl;
     const auto allVars =
         gen_var_list(bin_op, {{VariableType::FUNCTION_PARAMETER, true},
                               {VariableType::PACKET, true},
@@ -205,8 +206,8 @@ std::string AlgebraicSimplifier::simplify_simple_bin_op(
        opcode == clang::BinaryOperatorKind::BO_LAnd ||
        opcode == clang::BinaryOperatorKind::BO_LOr)) {
 
-    const auto lhsStr = clang_stmt_printer(lhs);
-    const auto rhsStr = clang_stmt_printer(rhs);
+    const auto lhsStr = ast_visit_stmt(lhs);
+    const auto rhsStr = ast_visit_stmt(rhs);
     // lexicographic comparison.
     if (lhsStr <= rhsStr)
       return lhsStr + std::string(bin_op->getOpcodeStr()) + rhsStr;
@@ -214,7 +215,7 @@ std::string AlgebraicSimplifier::simplify_simple_bin_op(
       return rhsStr + std::string(bin_op->getOpcodeStr()) + lhsStr;
   }
 
-  return clang_stmt_printer(bin_op->getLHS()) +
+  return ast_visit_stmt(bin_op->getLHS()) +
          std::string(bin_op->getOpcodeStr()) +
-         clang_stmt_printer(bin_op->getRHS());
+         ast_visit_stmt(bin_op->getRHS());
 }

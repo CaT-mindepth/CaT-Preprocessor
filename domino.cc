@@ -18,7 +18,7 @@
 #include "gen_used_fields.h"
 #include "rename_pkt_fields.h"
 #include "dce.h"
-#include "to_dep_graph.h"
+#include "dde.h"
 
 #include <csignal>
 
@@ -86,9 +86,9 @@ void populate_passes() {
   all_passes["gen_used_fields"]  = [] () { return std::make_unique<DefaultSinglePass>(gen_used_field_transform); };
   all_passes["const_prop"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), const_prop_transform, dce_transform})); };
   all_passes["dce"]=[] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(dce_transform); };
-
+  all_passes["dde"] = [](){ return std::make_unique<DefaultSinglePass>(dde_transform); };
   // Caution: This pass is designed as the last pass that prints out
-  // the input file to CaT codegen. It renames "p.***" into 'p_***' but this modification will make
+  // the input file to CaT codegen. It renames "p.***" into 'p_***' aszbut this modification will make
   // the local variables lose type MemberExpr which then breaks the identifiers census that tells later passes
   // what vars are stateful and what vars are stateless. The only way to mend this is to run this pass somewhere
   // later in the pipeline, right before we output code for synthesis.
@@ -126,7 +126,7 @@ int main(int argc, const char **argv) {
 
     // Default pass list
     //expr_flattener
-    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa";//,expr_propagater,expr_flattener,cse,dce";//rename_pkt_fields";
+    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,dce,rename_pkt_fields";
     // pass list w/o anything after SSA
     //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
 
@@ -156,15 +156,6 @@ int main(int argc, const char **argv) {
                                    std::cout << "...pass " << i << " done.\n";
                                    return p; });
      std::cout << result << std::endl;
-      //std::cout << "processing done." << std::endl; 
-      //std::cout << "-------------------- dependency graph building --------------" << std::endl;
-
-      // Dependency graph construction pass.
-      // std::vector<DependencyGraph> dep_graphs;
-      // 
-      // Issue here: compiler_pass.h:64:3 SinglePass(...) arguments all need to have const qualifier. I think we need wrap it around a unique_ptr<...> object.
-      // PassFunctor toDepGraphPass = [dep_graphs]() { return std::make_unique<SinglePass< std::vector<DependencyGraph> & >>(to_dep_graph_transform, dep_graphs); };
-      // std::cout << (*toDepGraphPass())(result) << std::endl;
 
       return EXIT_SUCCESS;
     } else {
