@@ -1,0 +1,15 @@
+int p_count0;
+int p_count00;
+int p_count01;
+int p_new;
+int p_new0;
+# state variables start
+int count
+# state variables end
+bit p__br_tmp0;
+bit p__br_tmp00;
+# declarations end
+p_count00 = count;
+p__br_tmp00 = p_count00==0;
+count = (p__br_tmp00) ? (1) : p_count00;
+

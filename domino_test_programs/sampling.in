@@ -1,0 +1,25 @@
+int p_count0;
+int p_count00;
+int p_count01;
+int p_count02;
+int p_sample;
+int p_sample0;
+int p_sample1;
+int p_tmp0;
+int p_tmp1;
+int p_tmp2;
+int p_tmp3;
+int p_tmp4;
+# state variables start
+int count
+# state variables end
+bit p__br_tmp0;
+bit p__br_tmp00;
+# declarations end
+p_count00 = count;
+p__br_tmp00 = p_count00==29;
+p_count01 = (p__br_tmp00) ? (0) : p_count00;
+p_tmp3 = !p__br_tmp00;
+p_tmp4 = p_count01+1;
+count = p_tmp3 ? p_tmp4 : p_count01;
+

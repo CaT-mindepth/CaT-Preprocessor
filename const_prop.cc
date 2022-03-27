@@ -33,9 +33,6 @@ const_prop_body(const clang::CompoundStmt *function_body,
   // assignment is an expression reducible to a constant, since that is already
   // handled by the algebraic simplification pass.
   std::map<std::string, std::string> const_vars;
-  const auto isVarOrConst = [](const Expr *e) {
-    return isa<MemberExpr>(e) || isa<DeclRefExpr>(e) || isa<IntegerLiteral>(e);
-  };
   for (const auto *child : function_body->children()) {
     // Extract packet variable (i.e. only look at assignment statements.)
     assert_exception(isa<BinaryOperator>(child));
@@ -59,12 +56,8 @@ const_prop_body(const clang::CompoundStmt *function_body,
           dyn_cast<IntegerLiteral>(rhs)->getValue().getSExtValue());
     } else if (isa<UnaryOperator>(rhs) && caseB) {
       // case (b)
-      //const auto *un_op = dyn_cast<UnaryOperator>(rhs);
-      //if (isVarOrConst(un_op->getSubExpr()->IgnoreParenImpCasts())) {
-      // Is case (b), propagate
       const_vars[clang_stmt_printer(lhs)] = clang_stmt_printer(rhs);
       caseB = false;
-      //}
     }
   }
 

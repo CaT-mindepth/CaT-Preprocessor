@@ -137,7 +137,7 @@ std::string SinglePass<Args...>::operator()(const std::string & string_to_parse)
   auto TO = std::make_shared<clang::TargetOptions>();
   TO->Triple = llvm::sys::getDefaultTargetTriple();
   clang::TargetInfo *TI =
-      clang::TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
+  clang::TargetInfo::CreateTargetInfo(TheCompInst.getDiagnostics(), TO);
   TheCompInst.setTarget(TI);
 
   TheCompInst.createFileManager();

@@ -18,6 +18,12 @@ std::string AstVisitor::ast_visit_transform(const TranslationUnitDecl * tu_decl)
   return pkt_func_transform(tu_decl, std::bind(&AstVisitor::ast_visit_helper, this, _1, _2));
 }
 
+
+std::string AstVisitor::expr_visit_transform(clang::ASTContext * c, const Stmt * e) {
+  this->ctx = c;
+  return this->ast_visit_stmt(e);
+}
+
 std::pair<std::string, std::vector<std::string>> AstVisitor::ast_visit_helper(const clang::CompoundStmt * body,
                                                                               const std::string & pkt_name __attribute__((unused))) {
   return std::make_pair("{" + ast_visit_stmt(body) + "}", std::vector<std::string>());

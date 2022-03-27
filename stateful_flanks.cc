@@ -10,6 +10,7 @@
 #include "clang_utility_functions.h"
 #include "unique_identifiers.h"
 #include "pkt_func_transform.h"
+#include "context.h"
 
 using namespace clang;
 using std::placeholders::_1;
@@ -73,6 +74,10 @@ std::pair<std::string, std::vector<std::string>> add_stateful_flanks(const Compo
         new_decls.emplace_back(var_decl);
 
         const auto pkt_tmp_var   = pkt_name + "." + new_tmp_var;
+
+        Context::GetContext().SetType(new_tmp_var, D_INT);
+        Context::GetContext().SetVarKind(new_tmp_var, D_PKT_FIELD);
+        Context::GetContext().Derive(new_tmp_var, new_tmp_var);
 
         // Read from a state variable into a packet temporary
         // If it's an array, read index into a newly created packet temporary and move to prologue too

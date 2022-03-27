@@ -6,12 +6,21 @@
 
 #include "pkt_func_transform.h"
 #include "clang_utility_functions.h"
+#include "context.h"
+#include "algebraic_simplifier.h"
+
+#include <iostream>
+#include <functional>
+using namespace std;
 
 using namespace clang;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
+static ASTContext * _ctx;
+
 std::string IfConversionHandler::transform(const TranslationUnitDecl * tu_decl) {
+  _ctx = &(tu_decl->getASTContext());
   unique_identifiers_ = UniqueIdentifiers(identifier_census(tu_decl));
   return pkt_func_transform(tu_decl, std::bind(& IfConversionHandler::if_convert_body, this, _1, _2));
 }
@@ -44,21 +53,9 @@ void IfConversionHandler::if_convert(std::string & current_stream,
     }
 
     // Create temporary variable to hold the if condition
-    const auto condition_type_name = if_stmt->getCond()->getType().getAsString();
-    const auto cond_variable       = "_br_" + unique_identifiers_.get_unique_identifier();
-    const auto cond_var_decl       = condition_type_name + " " + cond_variable + ";";
-
-    // Add cond var decl to the packet structure, so that all decls accumulate there
-    current_decls.emplace_back(cond_var_decl);
-
-    // Add assignment to new packet temporary here,
-    // predicating it with the current predicate
-    const auto pkt_cond_variable = pkt_name + "." + cond_variable;
-    current_stream += pkt_cond_variable + " = (" + predicate + " ? (" + clang_stmt_printer(if_stmt->getCond()) + ") : 0);";
-
     // Create predicates for if and else block
-    auto pred_within_if_block = "(" + predicate + " && " + pkt_cond_variable + ")";
-    auto pred_within_else_block = "(" + predicate + " && !" + pkt_cond_variable + ")";
+    auto pred_within_if_block = "(" + predicate + " && " + clang_stmt_printer(if_stmt->getCond()) + ")";
+    auto pred_within_else_block = "(" + predicate + " && !" + clang_stmt_printer(if_stmt->getCond()) + ")";
 
     // If convert statements within getThen block to ternary operators.
     if_convert(current_stream, current_decls, pred_within_if_block, if_stmt->getThen(), pkt_name);

@@ -15,8 +15,8 @@ int num_pkts_with_rtt = 0;
 
 void func(struct Packet p) {
   input_traffic_Bytes = input_traffic_Bytes + p.size_bytes;
-  1 = 1;
   if (p.rtt < MAX_ALLOWABLE_RTT) {
+    p.rtt = 1 + 2;    
     sum_rtt_Tr = sum_rtt_Tr + p.rtt;
     num_pkts_with_rtt = num_pkts_with_rtt + 1;
   }

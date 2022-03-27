@@ -1,0 +1,14 @@
+// Dependency graph
+digraph {
+	"count = (p_tmp00) ? (1) | p_count00;"
+	"p_count01 = (p_tmp00) ? (1) | p_count00;"
+	"p_new0 = (p_tmp00) ? (1) | p_new;"
+	"p_tmp00 = p_count00 == 0;"
+	"p_count00 = count;"
+	"p_tmp00 = p_count00 == 0;" -> "count = (p_tmp00) ? (1) | p_count00;"
+	"p_tmp00 = p_count00 == 0;" -> "p_count01 = (p_tmp00) ? (1) | p_count00;"
+	"p_tmp00 = p_count00 == 0;" -> "p_new0 = (p_tmp00) ? (1) | p_new;"
+	"p_count00 = count;" -> "count = (p_tmp00) ? (1) | p_count00;"
+	"p_count00 = count;" -> "p_count01 = (p_tmp00) ? (1) | p_count00;"
+	"p_count00 = count;" -> "p_tmp00 = p_count00 == 0;"
+}

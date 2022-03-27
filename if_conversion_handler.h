@@ -12,6 +12,8 @@
 
 #include "unique_identifiers.h"
 
+#include <map>
+
 /// Rewrite if statements into ternary operators
 /// and recursively get rid of all branches.
 class IfConversionHandler {
@@ -20,7 +22,8 @@ class IfConversionHandler {
   std::string transform(const clang::TranslationUnitDecl * tu_decl);
 
   /// If convert function body
-  std::pair<std::string, std::vector<std::string>> if_convert_body(const clang::Stmt * function_body, const std::string & pkt_name) const;
+  std::pair<std::string, std::vector<std::string>> 
+    if_convert_body(const clang::Stmt * function_body, const std::string & pkt_name) const;
 
  private:
   /// if_convert current clang::Stmt

@@ -40,14 +40,18 @@ std::pair<std::string, std::vector<std::string>> expr_prop_fn_body(const Compoun
     // the syntactic construct for state variables and propagating state variables
     // destroys the property that state variables are only ever read at the top of the program
     // The partitiioning pass relies on this property.
+    // ruijief: Essentially we don't want to flatten the prologues and epilogues for the state var read/write flanks.
+    // ruijief: In addition, we don't want to propagate the ternary statements which we really just flattened. 
     const auto & var_list = gen_var_list(rhs);
     if (var_list.find(clang_stmt_printer(lhs)) == var_list.end() and
         (not isa<DeclRefExpr>(rhs)) and
-        (not isa<ArraySubscriptExpr>(rhs))) {
+        (not isa<ArraySubscriptExpr>(rhs)) and
+        (not isa<ConditionalOperator>(rhs))) {
       var_to_expr[clang_stmt_printer(lhs)] = clang_stmt_printer(rhs);
     }
-
-    if ((isa<DeclRefExpr>(rhs) or isa<MemberExpr>(rhs)) and (var_to_expr.find(clang_stmt_printer(rhs)) != var_to_expr.end())) {
+    
+    // ruijief: there used to be a isa<DeclRefExpr>(rhs) or ... here but it made no sense so I deleted it.
+    if (((not isa<ConditionalOperator>(rhs)) and isa<MemberExpr>(rhs)) and (var_to_expr.find(clang_stmt_printer(rhs)) != var_to_expr.end())) {
       // If rhs is a packet/state variable, replace it with its current expr
       transformed_body += clang_stmt_printer(lhs) + "=" + var_to_expr.at(clang_stmt_printer(rhs)) + ";";
     } else {

@@ -1,0 +1,30 @@
+int p_cond1;
+int p_last_update0;
+int p_last_update00;
+int p_last_update01;
+int p_link_idle;
+int p_loss;
+int p_now;
+int p_now_plus_free;
+int p_now_plus_free0;
+int p_p_mark0;
+int p_p_mark00;
+int p_p_mark01;
+int p_qlen;
+int p_tmp0;
+int p_tmp1;
+# state variables start
+int last_update
+int p_mark
+# state variables end
+bit p__br_tmp0;
+bit p__br_tmp00;
+# declarations end
+p_p_mark00 = p_mark;
+p_last_update00 = last_update;
+p_now_plus_free0 = p_now-1;
+p__br_tmp00 = p_now_plus_free0>p_last_update00;
+p_tmp1 = p_p_mark00+1;
+p_mark = (p__br_tmp00) ? p_tmp1 : p_p_mark00;
+last_update = (p__br_tmp00) ? (p_now) : p_last_update00;
+

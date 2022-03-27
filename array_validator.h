@@ -16,7 +16,10 @@
 class ArrayValidator : public AstVisitor {
  protected:
   /// Touch only array subscript operator
-  std::string ast_visit_array_subscript_expr(const clang::ArraySubscriptExpr * array_subscript_expr) override {
+  std::string ast_visit_array_subscript_expr(const clang::ArraySubscriptExpr * array_subscript_expr __attribute__((unused))) override {
+    /* CaT assumes after array_replacer, no subscript expressions will occur. */
+    assert_exception(false);
+    #if 0 
     assert_exception(array_subscript_expr);
     bool check = clang::isa<clang::ImplicitCastExpr>(array_subscript_expr->getIdx()) and
                  clang::isa<clang::MemberExpr>(clang::dyn_cast<clang::ImplicitCastExpr>(array_subscript_expr->getIdx())->getSubExpr());
@@ -29,6 +32,7 @@ class ArrayValidator : public AstVisitor {
       // Delegate to base class
       return AstVisitor::ast_visit_array_subscript_expr(array_subscript_expr);
     }
+    #endif
   }
 };
 

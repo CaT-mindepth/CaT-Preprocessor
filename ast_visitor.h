@@ -15,6 +15,10 @@ class AstVisitor {
   /// which immediately delegates to ast_visit_helper
   virtual std::string ast_visit_transform(const clang::TranslationUnitDecl * tu_decl);
 
+  // Helper for if_converter.
+  // Iterate over a clang expression.
+  virtual std::string expr_visit_transform(clang::ASTContext * ctx, const clang::Stmt * e);
+
   /// Need destructor to be virtual and accessible, g++ whines otherwise
   virtual ~AstVisitor() {};
 

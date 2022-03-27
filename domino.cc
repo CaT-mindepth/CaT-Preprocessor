@@ -1,7 +1,6 @@
 #include "if_conversion_handler.h"
 #include "ssa.h"
 #include "expr_prop.h"
-#include "partitioning.h"
 #include "stateful_flanks.h"
 #include "expr_flattener_handler.h"
 #include "algebraic_simplifier.h"
@@ -11,7 +10,6 @@
 #include "array_validator.h"
 #include "validator.h"
 #include "redundancy_remover.h"
-#include "sketch_backend.h"
 #include "cse.h"
 #include "csi.h"
 #include "const_prop.h"
@@ -20,6 +18,12 @@
 #include "rename_pkt_fields.h"
 #include "dce.h"
 #include "dde.h"
+#include "elim_ternary.h"
+#include "initial_pass.h"
+#include "branch_var_creator.h"
+#include "array_replacer.h"
+#include "paren_remover.h"
+#include "context.h"
 
 #include <csignal>
 
@@ -37,7 +41,7 @@
 
 // Graph utilities
 #include "graph.h"
-#include "dep_graph.h"
+
 
 // For debugging purposes
 #include <cassert>
@@ -70,7 +74,11 @@ void populate_passes() {
   // We need to explicitly call populate_passes instead of using an initializer list
   // to populate PassMap all_passes because initializer lists don't play well with move-only
   // types like unique_ptrs (http://stackoverflow.com/questions/9618268/initializing-container-of-unique-ptrs-from-initializer-list-fails-with-gcc-4-7)
-  all_passes["cse"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), csi_transform, cse_transform, dce_transform})); };
+   all_passes["initial_pass"] = [] () { return std::make_unique<DefaultSinglePass>(initial_pass_transform); };
+   all_passes["create_branch_var"] = [] () {return std::make_unique<DefaultSinglePass>(branch_var_creator_transform);};
+   all_passes["array_replacer"] = []() {return std::make_unique<DefaultSinglePass>(array_replacer_transform);};
+   all_passes["paren_remover"] = [](){return std::make_unique<DefaultSinglePass>(paren_remover_transform);};
+  all_passes["cse"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), csi_transform, cse_transform/*, dce_transform*/})); };
   all_passes["redundancy_remover"]=[] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(redundancy_remover_transform); };
   all_passes["array_validator"]  = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& ArrayValidator::ast_visit_transform, ArrayValidator(), _1)); };
   all_passes["validator"]        = [] () { return std::make_unique<DefaultSinglePass>(std::bind(& Validator::ast_visit_transform, Validator(), _1)); };
@@ -85,15 +93,9 @@ void populate_passes() {
   all_passes["ssa"]              = [] () { return std::make_unique<DefaultSinglePass>(ssa_transform); };
   all_passes["echo"]             = [] () { return std::make_unique<DefaultSinglePass>(clang_decl_printer); };
   all_passes["gen_used_fields"]  = [] () { return std::make_unique<DefaultSinglePass>(gen_used_field_transform); };
-  all_passes["const_prop"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), const_prop_transform, dce_transform})); };
+  all_passes["const_prop"]               =[] () { return std::make_unique<FixedPointPass<CompoundPass, std::vector<DefaultTransformer>>>(std::vector<DefaultTransformer>({std::bind(& AlgebraicSimplifier::ast_visit_transform, AlgebraicSimplifier(), _1), const_prop_transform})); };
   all_passes["dce"]=[] () { return std::make_unique<FixedPointPass<DefaultSinglePass, DefaultTransformer>>(dce_transform); };
   all_passes["dde"] = [](){ return std::make_unique<DefaultSinglePass>(dde_transform); };
-  // Caution: This pass is designed as the last pass that prints out
-  // the input file to CaT codegen. It renames "p.***" into 'p_***' aszbut this modification will make
-  // the local variables lose type MemberExpr which then breaks the identifiers census that tells later passes
-  // what vars are stateful and what vars are stateless. The only way to mend this is to run this pass somewhere
-  // later in the pipeline, right before we output code for synthesis.
-  //all_passes["rename_pkt_fields"] = [] () { return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform); };
   all_passes["rename_pkt_fields"] = [] () { return std::make_unique<CompoundPass> (std::vector<DefaultTransformer>({reduce_var_types_helper_transform, rename_pkt_fields_transform})); };
 }
 
@@ -127,9 +129,19 @@ int main(int argc, const char **argv) {
 
     // Default pass list
     //expr_flattener
-    const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,cse,dce,dde,rename_pkt_fields";
+ // const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,const_prop,cse,dde,rename_pkt_fields"; // dce
     // pass list w/o anything after SSA
-    //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
+  //const auto default_pass_list = "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
+//const auto default_pass_list = "initial_pass,int_type_checker,desugar_comp_asgn,if_converter,array_validator,stateful_flanks,ssa,elim_ternary";
+//const auto default_pass_list = "initial_pass,int_type_checker,desugar_comp_asgn,if_converter,stateful_flanks,algebra_simplify,ssa,rename_pkt_fields";
+
+const auto default_pass_list = "array_replacer,array_validator,initial_pass,int_type_checker,desugar_comp_asgn,if_converter,stateful_flanks,algebra_simplify,create_branch_var,ssa,paren_remover,expr_propagater,expr_flattener,rename_pkt_fields";//,expr_flattener,rename_pkt_fields";//,stateful_flanks,algebra_simplify,ssa";
+
+
+// new pipeline:
+// initial_pass -> int_type_checker -> desugar_comp_asgn -> if_converter -> stateful_flanks -> ssa
+//       -> expr_propagator -> expr_flattener -> const-prop -> cse -> dde
+//       -> rename_pkt_fields
 
     // Usage: domino <source_file>
     if (argc == 2) {
@@ -156,7 +168,12 @@ int main(int argc, const char **argv) {
                                    std::cout << "program: " << p << std::endl;
                                    std::cout << "...pass " << i << " done.\n";
                                    return p; });
-     std::cout << result << std::endl;
+     
+     std::cout << "result: "<< result << std::endl;
+
+      std::cout << " ------------- context: ---------\n";
+      Context & ctx = Context::GetContext();
+      ctx.Print();
 
       return EXIT_SUCCESS;
     } else {

@@ -5,22 +5,34 @@ AM_CPPFLAGS = -isystem $(CLANG_DEV_LIBS)/include/ -stdlib=libc++   -D__STDC_CONS
 AM_LDFLAGS = -L $(CLANG_DEV_LIBS)/lib  -Wl,-search_paths_first -Wl,-headerpad_max_install_names
 
 # There are some strange circular deps within clang requiring us to list libraries twice
-# https://github.com/eliben/llvm-clang-samples/blob/master/Makefile#L71
-CLANG_LLVM_LIBS = -lLLVM-12 -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization\
+# https://github.com/eliben/llvm-clang-samples/blob/master/Makefile#L71 #-lLLVM-12
+CLANG_LLVM_LIBS = -lLLVM-13 -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization\
                   -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization\
                   -lLLVMOption  -lLLVMMCParser -lLLVMBitReader  -lLLVMMC -lLLVMSupport -lz -lpthread -ltermcap -ldl
 
-common_source = clang_utility_functions.cc  clang_utility_functions.h unique_identifiers.h unique_identifiers.cc pkt_func_transform.h pkt_func_transform.cc graph.h expr_flattener_handler.cc expr_flattener_handler.h expr_prop.cc stateful_flanks.cc ssa.cc partitioning.cc if_conversion_handler.cc if_conversion_handler.h ssa.h partitioning.h stateful_flanks.h expr_prop.h util.cc util.h assert_exception.h desugar_compound_assignment.h desugar_compound_assignment.cc int_type_checker.h algebraic_simplifier.cc algebraic_simplifier.h array_validator.h redundancy_remover.cc redundancy_remover.h sketch_backend.cc sketch_backend.h csi.cc csi.h cse.cc cse.h const_prop.cc const_prop.h dce.cc dce.h dde.cc dde.h rename_pkt_fields.cc rename_pkt_fields.h reduce_var_types_helper.cc reduce_var_types_helper.h gen_used_fields.cc gen_used_fields.h validator.h bool_to_int.h ast_visitor.cc ast_visitor.h chipmunk_code_generator.cc chipmunk_code_generator.h dep_graph.h to_dep_graph.cc to_dep_graph.h
+common_source = \
+    clang_utility_functions.cc  clang_utility_functions.h unique_identifiers.h unique_identifiers.cc \
+    pkt_func_transform.h pkt_func_transform.cc graph.h expr_flattener_handler.cc expr_flattener_handler.h \
+    expr_prop.cc stateful_flanks.cc ssa.cc if_conversion_handler.cc if_conversion_handler.h ssa.h \
+    stateful_flanks.h expr_prop.h util.cc util.h assert_exception.h \
+    desugar_compound_assignment.h desugar_compound_assignment.cc \
+    int_type_checker.h algebraic_simplifier.cc algebraic_simplifier.h \
+    array_validator.h redundancy_remover.cc redundancy_remover.h \
+    csi.cc csi.h cse.cc cse.h const_prop.cc const_prop.h dce.cc dce.h dde.cc dde.h \
+    rename_pkt_fields.cc rename_pkt_fields.h reduce_var_types_helper.cc reduce_var_types_helper.h \
+    gen_used_fields.cc gen_used_fields.h validator.h bool_to_int.h ast_visitor.cc ast_visitor.h \
+    elim_ternary.cc elim_ternary.h initial_pass.cc initial_pass.h branch_var_creator.cc branch_var_creator.h \
+    array_replacer.cc array_replacer.h paren_remover.cc paren_remover.h
 
 noinst_LIBRARIES = libdomino.a
-bin_PROGRAMS = domino domino_to_chipmunk
+bin_PROGRAMS = domino
 
 libdomino_a_SOURCES = $(common_source)
-
-domino_CXXFLAGS = $(PICKY_CXXFLAGS) -fno-rtti -lLLVM-12
+#-lLLVM-12
+domino_CXXFLAGS = $(PICKY_CXXFLAGS) -fno-rtti  -lLLVM-13
 domino_SOURCES = domino.cc
 domino_LDADD = $(CLANG_LLVM_LIBS) libdomino.a $(srcdir)/third_party/libmahimahi.a 
 
-domino_to_chipmunk_CXXFLAGS = $(PICKY_CXXFLAGS) -fno-rtti -lLLVM-12
+domino_to_chipmunk_CXXFLAGS = $(PICKY_CXXFLAGS) -fno-rtti -lLLVM-13
 domino_to_chipmunk_SOURCES = domino_to_chipmunk.cc
 domino_to_chipmunk_LDADD = $(CLANG_LLVM_LIBS) libdomino.a $(srcdir)/third_party/libmahimahi.a

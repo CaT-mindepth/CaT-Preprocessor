@@ -63,7 +63,7 @@ dce_body(const clang::CompoundStmt *function_body,
   for (const auto &lhsVar : lhsVars)
     if (rhsVars.find(lhsVar) == rhsVars.end())
       emptyDefines.insert(lhsVar);
-
+//TODO: DCE problematic on straight-line programs, since last assignment unused --- everything unsed --- everything eliminated!!!
   // std::cout << "dce_body: found empty defines" << std::endl;
   // Now carry out replacements.
   for (const auto *child : function_body->children()) {

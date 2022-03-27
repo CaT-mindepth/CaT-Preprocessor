@@ -8,6 +8,7 @@
 #include "clang_utility_functions.h"
 #include "pkt_func_transform.h"
 #include "unique_identifiers.h"
+#include "context.h"
 
 using namespace clang;
 using std::placeholders::_1;
@@ -45,9 +46,8 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
       identifier_census(tu_decl, packetVarsSel);
   //std::cout << "rename_pkt_fields_transform: outputting vars..." << std::endl;
   for (const auto &statelessVar : statelessVars) {
-    if (statelessVar.rfind("_br", 0) != std::string::npos) {
-      branchVars.insert(statelessVar);
-    } else {
+    if (Context::GetContext().GetType(statelessVar) == D_BIT) branchVars.insert(statelessVar);
+    else {
       std::cout << "int p_" << statelessVar << ";" << std::endl;
     }
   }
@@ -64,11 +64,11 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
     assert_exception(child_decl);
     if (isa<VarDecl>(child_decl) or isa<RecordDecl>(child_decl)) {
       // Pass through these declarations as is
-      // ret += clang_decl_printer(child_decl) + ";";
+      //ret += clang_decl_printer(child_decl) + ";";
       continue;
     } else if (isa<FunctionDecl>(child_decl) and
                (not is_packet_func(dyn_cast<FunctionDecl>(child_decl)))) {
-      // ret += generate_scalar_func_def(dyn_cast<FunctionDecl>(child_decl));
+      //ret += generate_scalar_func_def(dyn_cast<FunctionDecl>(child_decl));
       continue;
     } else if (isa<FunctionDecl>(child_decl) and
                (is_packet_func(dyn_cast<FunctionDecl>(child_decl)))) {
@@ -92,6 +92,9 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
 std::string rename_pkt_fields_body(const clang::CompoundStmt *function_body,
                                    const std::string &pkt_name
                                    __attribute__((unused))) {
+
+  // std::cout << "hello here" << std::endl;
+                                     
   std::string transformed_body = "";
 
   // Vector of newly created packet temporaries

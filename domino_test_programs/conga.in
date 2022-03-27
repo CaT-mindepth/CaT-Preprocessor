@@ -1,0 +1,41 @@
+int p_best_path0;
+int p_best_path00;
+int p_best_path01;
+int p_best_path_idx;
+int p_best_path_idx0;
+int p_best_path_util0;
+int p_best_path_util00;
+int p_best_path_util01;
+int p_best_path_util02;
+int p_best_path_util_idx;
+int p_best_path_util_idx0;
+int p_path_id;
+int p_src;
+int p_tmp0;
+int p_tmp1;
+int p_tmp2;
+int p_tmp3;
+int p_tmp4;
+int p_tmp5;
+int p_util;
+# state variables start
+int best_path
+int best_path_util
+# state variables end
+bit p__br_tmp0;
+bit p__br_tmp00;
+bit p__br_tmp1;
+bit p__br_tmp10;
+# declarations end
+p_best_path_util00 = best_path_util;
+p_best_path00 = best_path;
+p__br_tmp00 = p_util<p_best_path_util00;
+p_best_path_util01 = (p__br_tmp00) ? (p_util) : p_best_path_util00;
+p_best_path01 = (p__br_tmp00) ? (p_path_id) : p_best_path00;
+p_tmp5 = !p__br_tmp00;
+p_tmp1 = p_path_id==p_best_path01;
+p__br_tmp10 = p_tmp5 ? p_tmp1 : 0;
+p_tmp3 = p_tmp5&&p__br_tmp10;
+best_path_util = p_tmp3 ? (p_util) : p_best_path_util01;
+best_path = (p__br_tmp00) ? (p_path_id) : p_best_path00;
+
