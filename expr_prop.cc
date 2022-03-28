@@ -51,7 +51,7 @@ std::pair<std::string, std::vector<std::string>> expr_prop_fn_body(const Compoun
     }
     
     // ruijief: there used to be a isa<DeclRefExpr>(rhs) or ... here but it made no sense so I deleted it.
-    if (((not isa<ConditionalOperator>(rhs)) and isa<MemberExpr>(rhs)) and (var_to_expr.find(clang_stmt_printer(rhs)) != var_to_expr.end())) {
+    if ((not(isa<DeclRefExpr>(lhs)) and (not isa<ConditionalOperator>(rhs)) and isa<MemberExpr>(rhs)) and (var_to_expr.find(clang_stmt_printer(rhs)) != var_to_expr.end())) {
       // If rhs is a packet/state variable, replace it with its current expr
       transformed_body += clang_stmt_printer(lhs) + "=" + var_to_expr.at(clang_stmt_printer(rhs)) + ";";
     } else {

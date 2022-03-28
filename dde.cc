@@ -10,6 +10,7 @@
 #include "clang_utility_functions.h"
 #include "pkt_func_transform.h"
 #include "unique_identifiers.h"
+#include "context.h"
 
 using namespace clang;
 using std::placeholders::_1;
@@ -106,7 +107,7 @@ std::string dde_transform(const TranslationUnitDecl *tu_decl) {
         // If this field is marked as indeed used in some function body, then
         // include it in the final printout. Otherwise, it is dead, so we
         // discard it.
-        if (usedPktVars.find("p." + field_str) != usedPktVars.end()) {
+        if (usedPktVars.find("p." + field_str) != usedPktVars.end() || Context::GetContext().GetOptLevel(field_str) == D_NO_OPT) {
           record_decl_str +=
               dyn_cast<ValueDecl>(field_decl)->getType().getAsString() + " " +
               clang_value_decl_printer(dyn_cast<ValueDecl>(field_decl)) + ";";
