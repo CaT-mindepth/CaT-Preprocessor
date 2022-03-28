@@ -93,11 +93,37 @@ array_replacer_transform(const clang::TranslationUnitDecl *tu_decl) {
 }
 
 std::pair<std::string, std::vector<std::string>>
-array_replacer(const clang::CompoundStmt *function_body,
-               const std::string &pkt_name, ReplacementVisitor &visitor,
-               ASTContext *_ctx) {
+array_replace_if(const clang::IfStmt *child, const std::string &pkt_name,
+                 ReplacementVisitor &visitor, ASTContext *_ctx) {
   std::string out = "";
   std::vector<std::string> new_decls;
+
+  // recursively do the replacement.
+  std::cout << "recursively replacing an if statement" << std::endl;
+  const auto *if_child = dyn_cast<IfStmt>(child);
+  out += "if (" + visitor.expr_visit_transform(_ctx, if_child->getCond()) +
+         ") {\n";
+  auto then_result =
+      array_replacer(if_child->getThen(), pkt_name, visitor, _ctx);
+  if (if_child->getElse() != nullptr) {
+    auto else_result =
+        array_replacer(if_child->getElse(), pkt_name, visitor, _ctx);
+    out += then_result.first + "\n } else { \n" + else_result.first + "}";
+  } else {
+    out += then_result.first + "\n }\n";
+  }
+  return std::make_pair(out, new_decls);
+}
+
+std::pair<std::string, std::vector<std::string>>
+array_replacer(const clang::Stmt *function_body, const std::string &pkt_name,
+               ReplacementVisitor &visitor, ASTContext *_ctx) {
+  std::string out = "";
+  std::vector<std::string> new_decls;
+
+  if (isa<IfStmt>(function_body))
+    return array_replace_if(dyn_cast<IfStmt>(function_body), pkt_name, visitor,
+                            _ctx);
 
   for (const auto *child : function_body->children()) {
     if (isa<BinaryOperator>(child)) {
@@ -109,9 +135,10 @@ array_replacer(const clang::CompoundStmt *function_body,
       const std::string lhs_visited = visitor.expr_visit_transform(_ctx, lhs);
       const std::string rhs_visited = visitor.expr_visit_transform(_ctx, rhs);
       out += lhs_visited + " = " + rhs_visited + ";\n";
+    } else if (isa<IfStmt>(child)) {
+      out += array_replace_if(dyn_cast<IfStmt>(child), pkt_name, visitor, _ctx).first;
     } else
       out += clang_stmt_printer(child) + ";";
   }
-
   return make_pair("{" + out + "}", new_decls);
 }

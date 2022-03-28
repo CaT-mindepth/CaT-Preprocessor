@@ -65,13 +65,8 @@ std::string dde_transform(const TranslationUnitDecl *tu_decl) {
   for (const auto *child_decl : all_decls) {
     assert_exception(child_decl);
     if (isa<VarDecl>(child_decl)) {
-      // If this state variable is indeed used in some function body, include
-      // it. Otherwise, discard it as a dead decl.
-      const auto *state_var_decl = dyn_cast<VarDecl>(child_decl);
-      if (usedStateVars.find(std::string(state_var_decl->getName())) !=
-          usedStateVars.end()) {
+        // All state variables need to be preserved.
         state_var_str += clang_decl_printer(child_decl) + ";";
-      }
     } else if ((isa<FunctionDecl>(child_decl) and
                 (not is_packet_func(dyn_cast<FunctionDecl>(child_decl))))) {
       scalar_func_str +=

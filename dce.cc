@@ -8,7 +8,7 @@
 #include "clang_utility_functions.h"
 #include "pkt_func_transform.h"
 #include "unique_identifiers.h"
-
+#include "context.h"
 using namespace clang;
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -72,13 +72,17 @@ dce_body(const clang::CompoundStmt *function_body,
     const auto *bin_op = dyn_cast<BinaryOperator>(child);
     const auto *lhs = bin_op->getLHS()->IgnoreParenImpCasts();
     const std::string lhsStr = clang_stmt_printer(lhs);
-    // If current assignment stmt is not dead code, then
+    std::string lhsDeclStr = "";
+    if (isa<MemberExpr>(lhs)) lhsDeclStr = dyn_cast<MemberExpr>(lhs)->getMemberDecl()->getNameAsString();
+    else if (isa<DeclRefExpr>(lhs)) lhsDeclStr = lhsStr;
+    else assert_exception(false); // will not happen.
+    // If current assignment stmt is not dead code, or marked as NO_OPT, then
     // add it to the transformed body. Else, ignore it.
-    if (emptyDefines.find(lhsStr) == emptyDefines.end()) {
+    if (emptyDefines.find(lhsStr) == emptyDefines.end() || Context::GetContext().GetOptLevel(lhsDeclStr) == D_NO_OPT) {
       transformed_body += clang_stmt_printer(child) + ";";
-    } // else
-    //   std::cout << "dce_body: dead code is: " << clang_stmt_printer(child)
-    //           << std::endl;
+    }  else
+       std::cout << "dce_body: dead code is: " << clang_stmt_printer(child)
+               << std::endl;
   }
   // std::cout << "dce_body: DCE done" << std::endl;
   return std::make_pair("{" + transformed_body + "}",

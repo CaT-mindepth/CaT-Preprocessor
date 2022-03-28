@@ -71,7 +71,7 @@ AlgebraicSimplifier::ast_visit_un_op(const clang::UnaryOperator *un_op) {
   const auto opcode_str =
       std::string(UnaryOperator::getOpcodeStr(un_op->getOpcode()));
   if (!(isa<UnaryOperator>(subExpr)))
-    return opcode_str + ast_visit_stmt(un_op->getSubExpr());
+    return opcode_str + "(" + ast_visit_stmt(subExpr) + ")";
   const auto *sub_un_op = dyn_cast<UnaryOperator>(subExpr);
   const auto opcode = un_op->getOpcode();
   const auto sub_opcode = sub_un_op->getOpcode();
@@ -79,9 +79,9 @@ AlgebraicSimplifier::ast_visit_un_op(const clang::UnaryOperator *un_op) {
     // Double negation or double minus signs. We can now simplify them out.
     // Note that now we need to visit the sub-expression of sub_un_op, not
     // un_op.
-    return ast_visit_stmt(sub_un_op->getSubExpr());
+    return ast_visit_stmt(sub_un_op->getSubExpr()->IgnoreParenImpCasts());
   } else {
-    return opcode_str + ast_visit_stmt(un_op->getSubExpr());
+    return opcode_str + "(" + ast_visit_stmt(un_op->getSubExpr()->IgnoreParenImpCasts()) + ")";
   }
 }
 

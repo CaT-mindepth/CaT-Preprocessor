@@ -104,13 +104,20 @@ ssa_rewrite_fn_body(const CompoundStmt *function_body,
         const auto var_decl = var_type + " " + new_tmp_var + ";";
 
         // add to context
+        // var kind: if lhs is a D_TMP, we inherit the kind. Otherwise
+        // we mark newly created var as a PKT_FIELD, because we don't want to destroy
+        // read/write flanks.
          std::cout << "getting type of var " << lhs_var << "\n";
         const auto var_domino_type = Context::GetContext().GetType(lhs_field);
+        const auto var_domino_kind = Context::GetContext().GetVarKind(lhs_field);
 
         Context::GetContext().SetType(new_tmp_var, var_domino_type);
-        Context::GetContext().SetVarKind(new_tmp_var, D_PKT_FIELD);
+        Context::GetContext().SetVarKind(new_tmp_var, var_domino_kind == D_TMP ? D_TMP : D_PKT_FIELD);
         Context::GetContext().Derive(lhs_field, new_tmp_var);
-
+        // if a variable is a tmp, mark it as OPT.
+        if (var_domino_kind == D_TMP)
+          Context::GetContext().SetOptLevel(new_tmp_var, D_OPT);
+        
         new_decls.emplace_back(var_decl);
         current_packet_var_replacements[lhs_var] = pkt_name + "." + new_tmp_var;
         current_packet_field_replacements

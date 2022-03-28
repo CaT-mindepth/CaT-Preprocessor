@@ -6,10 +6,14 @@
 
 using namespace clang;
 
-std::string
-paren_remover_transform(const clang::TranslationUnitDecl *tu_decl) {
+std::string paren_remover_transform(const clang::TranslationUnitDecl *tu_decl) {
   UniqueIdentifiers uid(identifier_census(tu_decl));
   return pkt_func_transform(tu_decl, paren_remover);
+}
+
+std::string simplify_unary(const clang::UnaryOperator *u) {
+  return "!(" + clang_stmt_printer(u->getSubExpr()->IgnoreParenImpCasts()) +
+         ")";
 }
 
 std::pair<std::string, std::vector<std::string>>
@@ -30,10 +34,18 @@ paren_remover(const clang::CompoundStmt *function_body,
         const auto *cond_expr = ternary->getCond()->IgnoreParenImpCasts();
         const auto *t_expr = ternary->getTrueExpr()->IgnoreParenImpCasts();
         const auto *f_expr = ternary->getFalseExpr()->IgnoreParenImpCasts();
-        out += clang_stmt_printer(lhs) + " = (" +
-               clang_stmt_printer(cond_expr) + ") ? (" +
-               clang_stmt_printer(t_expr) + ") : (" +
-               clang_stmt_printer(f_expr) + ");";
+        // We sometimes encounter expressions like !((...)). Handle unaries 
+        // separately so that we can simplify them.
+        if (isa<UnaryOperator>(cond_expr))
+          out += clang_stmt_printer(lhs) + " = (" +
+                 simplify_unary(dyn_cast<UnaryOperator>(cond_expr)) + ") ? (" +
+                 clang_stmt_printer(t_expr) + ") : (" +
+                 clang_stmt_printer(f_expr) + ");";
+        else
+          out += clang_stmt_printer(lhs) + " = (" +
+                 clang_stmt_printer(cond_expr) + ") ? (" +
+                 clang_stmt_printer(t_expr) + ") : (" +
+                 clang_stmt_printer(f_expr) + ");";
       } else
         out += clang_stmt_printer(lhs) + " = " + clang_stmt_printer(rhs) + ";";
     } else

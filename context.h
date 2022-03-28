@@ -39,6 +39,14 @@ static std::string domino_var_kind_to_string(DominoVarKind dk) {
     return "??";
 }
 
+static std::string domino_opt_level_to_string(DominoOptLevels opt) {
+    switch (opt) {
+        case D_OPT: return "D_OPT";
+        case D_NO_OPT: return "D_NO_OPT";
+    }
+    return "??";
+}
+
 /**
  * Singleton class that stores type info, etc.
  */
@@ -109,6 +117,9 @@ class Context {
         for (const auto & p : this->var_kind) {
             std::cout << "varkind " << p.first << " : " << domino_var_kind_to_string(p.second) << "\n";
         }
+        std::cout << "------------------\n";
+        for (const auto & p : this->opt_levels)
+            std::cout << "opt_level " << p.first << " : " << domino_opt_level_to_string(p.second) << "\n";
     }
 
     // Mark constructors as singleton

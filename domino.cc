@@ -137,7 +137,7 @@ int main(int argc, const char **argv) {
 //const auto default_pass_list = "initial_pass,int_type_checker,desugar_comp_asgn,if_converter,array_validator,stateful_flanks,ssa,elim_ternary";
 //const auto default_pass_list = "initial_pass,int_type_checker,desugar_comp_asgn,if_converter,stateful_flanks,algebra_simplify,ssa,rename_pkt_fields";
 
-const auto default_pass_list = "array_replacer,array_validator,initial_pass,int_type_checker,desugar_comp_asgn,if_converter,stateful_flanks,algebra_simplify,create_branch_var,ssa,paren_remover,expr_propagater,expr_flattener,dde,rename_pkt_fields";//,expr_flattener,rename_pkt_fields";//,stateful_flanks,algebra_simplify,ssa";
+const auto default_pass_list = "desugar_comp_asgn,array_replacer,array_validator,initial_pass,int_type_checker,if_converter,stateful_flanks,algebra_simplify,ssa,expr_propagater,algebra_simplify,paren_remover,create_branch_var,algebra_simplify,dce,dde";//,stateful_flanks,algebra_simplify,create_branch_var,ssa,paren_remover,expr_propagater,expr_flattener,dde,rename_pkt_fields";//,expr_flattener,rename_pkt_fields";//,stateful_flanks,algebra_simplify,ssa";
 
 
 // new pipeline:

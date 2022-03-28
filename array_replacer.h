@@ -26,7 +26,7 @@ protected:
 };
 
 std::pair<std::string, std::vector<std::string>>
-array_replacer(const clang::CompoundStmt *function_body,
+array_replacer(const clang::Stmt *function_body,
                const std::string &pkt_name, ReplacementVisitor &visitor,
                clang::ASTContext *_ctx);
 

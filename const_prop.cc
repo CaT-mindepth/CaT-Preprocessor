@@ -8,7 +8,7 @@
 #include "clang_utility_functions.h"
 #include "pkt_func_transform.h"
 #include "unique_identifiers.h"
-
+#include "context.h"
 using namespace clang;
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -41,6 +41,7 @@ const_prop_body(const clang::CompoundStmt *function_body,
     const auto *lhs = bin_op->getLHS()->IgnoreParenImpCasts();
     const auto *rhs = bin_op->getRHS()->IgnoreParenImpCasts();
     const std::string pkt_var = clang_stmt_printer(lhs);
+
     //
     // We check for two cases:
     // a) is a constant variable;
@@ -69,6 +70,15 @@ const_prop_body(const clang::CompoundStmt *function_body,
 
     const auto *lhs =
         dyn_cast<BinaryOperator>(child)->getLHS()->IgnoreParenImpCasts();
+
+    const std::string pkt_var = clang_stmt_printer(lhs);
+    std::string var_decl = "";
+    if (isa<MemberExpr>(lhs)) var_decl = dyn_cast<MemberExpr>(lhs)->getMemberDecl()->getNameAsString();
+    else if (isa<DeclRefExpr>(lhs)) var_decl = pkt_var;
+    else assert_exception(false);
+
+    if (Context::GetContext().GetOptLevel(var_decl) == D_NO_OPT) continue; // do not replace.
+    // else, carry out replacement.
     if (const_vars.find(clang_stmt_printer(lhs)) == const_vars.end()) {
       transformed_body +=
           replace_vars(dyn_cast<BinaryOperator>(child)->getLHS(), const_vars,
