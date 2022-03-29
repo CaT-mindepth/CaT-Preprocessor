@@ -10,13 +10,14 @@ AC_PROG_RANLIB
 
 # Add picky CXXFLAGS
 CPPFLAGS="-std=c++17 -pthread -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS -D_GLIBCXX_USE_CXX11_ABI=0"
-PICKY_CXXFLAGS="-pedantic -Wconversion -Wsign-conversion -Wall -Wextra -Weffc++"
+PICKY_CXXFLAGS="-std=c++17"
 AC_SUBST([PICKY_CXXFLAGS])
 
 # Checks for header files.
 AC_LANG_PUSH(C++)
 
 # clang-11 development libraries and headers
+AC_ARG_VAR(LLVM_VERSION, LLVM-10 or LLVM-13)
 AC_ARG_VAR(CLANG_DEV_LIBS, Root directory of Clang development libraries and headers)
 AC_SUBST([CLANG_DEV_LIBS])
 
@@ -38,7 +39,6 @@ AC_TYPE_UINT64_T
 AC_LANG_POP(C++)
 
 AC_CONFIG_FILES([Makefile
-                 third_party/Makefile
-                 tests/Makefile])
+                 third_party/Makefile])
 
 AC_OUTPUT
