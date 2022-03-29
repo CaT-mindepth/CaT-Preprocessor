@@ -22,12 +22,13 @@ common_source = \
     elim_ternary.cc elim_ternary.h initial_pass.cc initial_pass.h branch_var_creator.cc branch_var_creator.h \
     array_replacer.cc array_replacer.h paren_remover.cc paren_remover.h
 
-noinst_LIBRARIES = libdomino.a
+#noinst_LIBRARIES = libdomino.a
 bin_PROGRAMS = domino
 
-libdomino_a_SOURCES = $(common_source)
+#libdomino_a_SOURCES = $(common_source)
 #-lLLVM-12
 domino_CXXFLAGS = $(PICKY_CXXFLAGS) -fno-rtti  
-domino_SOURCES = domino.cc
-domino_LDADD = $(CLANG_LLVM_LIBS) libdomino.a $(srcdir)/third_party/libmahimahi.a 
+domino_SOURCES = $(common_source) domino.cc
+#domino_LDADD = $(CLANG_LLVM_LIBS) libdomino.a $(srcdir)/third_party/libmahimahi.a 
+domino_LDADD = $(CLANG_LLVM_LIBS) $(srcdir)/third_party/libmahimahi.a
 

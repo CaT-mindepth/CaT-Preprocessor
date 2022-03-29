@@ -32,7 +32,7 @@ protected:
   std::string ast_visit_member_expr(const clang::MemberExpr *member_expr) {
     const auto *expr = member_expr->IgnoreParenImpCasts();
     const auto expr_str = clang_stmt_printer(expr);
-    std::cout << "size of rewrite : " << this->_rewrite->size() << std::endl;
+    // std::cout << "size of rewrite : " << this->_rewrite->size() << std::endl;
     if (this->_rewrite->find(expr_str) != this->_rewrite->end()) {
       return this->_rewrite->at(expr_str);
     } else

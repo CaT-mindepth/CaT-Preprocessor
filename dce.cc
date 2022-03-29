@@ -80,9 +80,10 @@ dce_body(const clang::CompoundStmt *function_body,
     // add it to the transformed body. Else, ignore it.
     if (emptyDefines.find(lhsStr) == emptyDefines.end() || Context::GetContext().GetOptLevel(lhsDeclStr) == D_NO_OPT) {
       transformed_body += clang_stmt_printer(child) + ";";
-    }  else
-       std::cout << "dce_body: dead code is: " << clang_stmt_printer(child)
-               << std::endl;
+    }
+    //  else
+    //   std::cout << "dce_body: dead code is: " << clang_stmt_printer(child)
+    //           << std::endl;
   }
   // std::cout << "dce_body: DCE done" << std::endl;
   return std::make_pair("{" + transformed_body + "}",

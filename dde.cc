@@ -8,9 +8,9 @@
 #include "third_party/assert_exception.h"
 
 #include "clang_utility_functions.h"
+#include "context.h"
 #include "pkt_func_transform.h"
 #include "unique_identifiers.h"
-#include "context.h"
 
 using namespace clang;
 using std::placeholders::_1;
@@ -44,16 +44,29 @@ std::string dde_transform(const TranslationUnitDecl *tu_decl) {
       {VariableType::PACKET, false},
       {VariableType::STATE_SCALAR, true},
       {VariableType::STATE_ARRAY, false}};
+
+  std::string global_pkt_name = "";
+
   for (const auto *cdecl : all_decls) {
     if (isa<FunctionDecl>(cdecl)) {
       const auto *fdecl = dyn_cast<FunctionDecl>(cdecl);
       const auto *fbody = fdecl->getBody();
+
+      auto pkt_name = clang_value_decl_printer(fdecl->getParamDecl(0));
+      if (global_pkt_name == "")
+        global_pkt_name = pkt_name;
+      else
+        assert_exception(global_pkt_name == pkt_name);
+
       std::set<std::string> pktVars = gen_var_list(fbody, pktVarSelector);
       std::set<std::string> stateVars = gen_var_list(fbody, stateVarSelector);
       usedPktVars.insert(pktVars.begin(), pktVars.end());
       usedStateVars.insert(stateVars.begin(), stateVars.end());
     }
   }
+
+  //for (const auto &var : usedPktVars)
+  //  std::cout << "used var: " << var << std::endl;
 
   // Loop through sorted vector of declarations
 
@@ -65,8 +78,8 @@ std::string dde_transform(const TranslationUnitDecl *tu_decl) {
   for (const auto *child_decl : all_decls) {
     assert_exception(child_decl);
     if (isa<VarDecl>(child_decl)) {
-        // All state variables need to be preserved.
-        state_var_str += clang_decl_printer(child_decl) + ";";
+      // All state variables need to be preserved.
+      state_var_str += clang_decl_printer(child_decl) + ";";
     } else if ((isa<FunctionDecl>(child_decl) and
                 (not is_packet_func(dyn_cast<FunctionDecl>(child_decl))))) {
       scalar_func_str +=
@@ -102,11 +115,13 @@ std::string dde_transform(const TranslationUnitDecl *tu_decl) {
         // If this field is marked as indeed used in some function body, then
         // include it in the final printout. Otherwise, it is dead, so we
         // discard it.
-        if (usedPktVars.find("p." + field_str) != usedPktVars.end() || Context::GetContext().GetOptLevel(field_str) == D_NO_OPT) {
+        if (usedPktVars.find(global_pkt_name + "." + field_str) != usedPktVars.end() ||
+            Context::GetContext().GetOptLevel(field_str) == D_NO_OPT) {
           record_decl_str +=
               dyn_cast<ValueDecl>(field_decl)->getType().getAsString() + " " +
               clang_value_decl_printer(dyn_cast<ValueDecl>(field_decl)) + ";";
-        }
+        } //else
+         // std::cout << "dde: eliminating unused variable " << field_str << "\n";
       }
 
       // Close struct definition

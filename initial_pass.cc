@@ -15,7 +15,6 @@ using namespace std;
 //}
 
 string initial_pass_transform(const clang::TranslationUnitDecl * tu_decl) {
-  cout << "initial pass begin\n";
   for (const auto *child_decl : dyn_cast<DeclContext>(tu_decl)->decls()) {
       if (isa<RecordDecl>(child_decl)) {
           for (const auto *field_decl : dyn_cast<DeclContext>(child_decl)->decls()) {

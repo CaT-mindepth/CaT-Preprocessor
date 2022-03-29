@@ -99,7 +99,7 @@ array_replace_if(const clang::IfStmt *child, const std::string &pkt_name,
   std::vector<std::string> new_decls;
 
   // recursively do the replacement.
-  std::cout << "recursively replacing an if statement" << std::endl;
+  // std::cout << "recursively replacing an if statement" << std::endl;
   const auto *if_child = dyn_cast<IfStmt>(child);
   out += "if (" + visitor.expr_visit_transform(_ctx, if_child->getCond()) +
          ") {\n";

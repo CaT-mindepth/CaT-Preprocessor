@@ -107,7 +107,7 @@ ssa_rewrite_fn_body(const CompoundStmt *function_body,
         // var kind: if lhs is a D_TMP, we inherit the kind. Otherwise
         // we mark newly created var as a PKT_FIELD, because we don't want to destroy
         // read/write flanks.
-         std::cout << "getting type of var " << lhs_var << "\n";
+        // std::cout << "getting type of var " << lhs_var << "\n";
         const auto var_domino_type = Context::GetContext().GetType(lhs_field);
         const auto var_domino_kind = Context::GetContext().GetVarKind(lhs_field);
 

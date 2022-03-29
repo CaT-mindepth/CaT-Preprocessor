@@ -654,6 +654,7 @@ LTLIBOBJS
 LIBOBJS
 GPLUSPLUS
 CLANG_DEV_LIBS
+LLVM_VERSION
 PICKY_CXXFLAGS
 RANLIB
 am__fastdepCXX_FALSE
@@ -757,6 +758,7 @@ LDFLAGS
 LIBS
 CPPFLAGS
 CCC
+LLVM_VERSION
 CLANG_DEV_LIBS
 GPLUSPLUS'
 
@@ -1397,6 +1399,8 @@ Some influential environment variables:
   LIBS        libraries to pass to the linker, e.g. -l<library>
   CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
+  LLVM_VERSION
+              LLVM-10 or LLVM-13
   CLANG_DEV_LIBS
               Root directory of Clang development libraries and headers
   GPLUSPLUS   path to g++
@@ -3919,6 +3923,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
 
+
 # Search for g++, because we shell out to g++ when generating pisa code
 
 for ac_prog in g++
@@ -4055,7 +4060,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-ac_config_files="$ac_config_files Makefile third_party/Makefile tests/Makefile"
+ac_config_files="$ac_config_files Makefile third_party/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -4782,7 +4787,6 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "third_party/Makefile") CONFIG_FILES="$CONFIG_FILES third_party/Makefile" ;;
-    "tests/Makefile") CONFIG_FILES="$CONFIG_FILES tests/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

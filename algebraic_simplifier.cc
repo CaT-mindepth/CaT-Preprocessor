@@ -12,7 +12,8 @@ using namespace clang;
 std::string
 AlgebraicSimplifier::ast_visit_bin_op(const clang::BinaryOperator *bin_op) {
   if (can_be_simplified(bin_op)) {
-    return simplify_simple_bin_op(dyn_cast<clang::BinaryOperator>(bin_op->IgnoreParenImpCasts()));
+    return simplify_simple_bin_op(
+        dyn_cast<clang::BinaryOperator>(bin_op->IgnoreParenImpCasts()));
   } else {
     return ast_visit_stmt(bin_op->getLHS()) +
            std::string(bin_op->getOpcodeStr()) +
@@ -81,7 +82,8 @@ AlgebraicSimplifier::ast_visit_un_op(const clang::UnaryOperator *un_op) {
     // un_op.
     return ast_visit_stmt(sub_un_op->getSubExpr()->IgnoreParenImpCasts());
   } else {
-    return opcode_str + "(" + ast_visit_stmt(un_op->getSubExpr()->IgnoreParenImpCasts()) + ")";
+    return opcode_str + "(" +
+           ast_visit_stmt(un_op->getSubExpr()->IgnoreParenImpCasts()) + ")";
   }
 }
 
@@ -92,8 +94,8 @@ AlgebraicSimplifier::simplify_simple_bin_op(const BinaryOperator *bin_op) {
   const auto *lhs = bin_op->getLHS()->IgnoreParenImpCasts();
   const auto *rhs = bin_op->getRHS()->IgnoreParenImpCasts();
 
-  std::cout << "algebra simplifier: simplifying binary operation "
-            << clang_stmt_printer(bin_op) << std::endl;
+  // std::cout << "algebra simplifier: simplifying binary operation "
+  //           << clang_stmt_printer(bin_op) << std::endl;
 
   // Here lhs, rhs stand for left/right operand of a binary arithmetic
   // operation, not an assignment.
@@ -104,7 +106,7 @@ AlgebraicSimplifier::simplify_simple_bin_op(const BinaryOperator *bin_op) {
   clang::Expr::EvalResult er, erLHS, erRHS;
   bool lhsIsConst, rhsIsConst;
   if (bin_op->EvaluateAsInt(er, *(this->ctx))) {
-    std::cout << " ----- is an int!\n";
+    // std::cout << " ----- is an int!\n";
     return std::to_string(er.Val.getInt().getSExtValue());
   }
 
@@ -115,13 +117,13 @@ AlgebraicSimplifier::simplify_simple_bin_op(const BinaryOperator *bin_op) {
         dyn_cast<IntegerLiteral>(lhs)->getValue().getSExtValue() == 1) {
       // 1 * anything = anything
       // 1 && anything = anything
-      std::cout << "here : 1 && anything = anything\n"; 
+      //  std::cout << "here : 1 && anything = anything\n";
       return ast_visit_stmt(bin_op->getRHS());
     } else if (isa<IntegerLiteral>(rhs) and
                dyn_cast<IntegerLiteral>(rhs)->getValue().getSExtValue() == 1) {
       // anything * 1 = anything
       // anything && 1 = anything
-      std::cout << "here : 1 && anything = anything\n"; 
+      // std::cout << "here : 1 && anything = anything\n";
 
       return ast_visit_stmt(bin_op->getLHS());
     }
@@ -147,7 +149,7 @@ AlgebraicSimplifier::simplify_simple_bin_op(const BinaryOperator *bin_op) {
   // or A || A where A and A are the same.
   if (opcode == clang::BinaryOperatorKind::BO_LAnd or
       opcode == clang::BinaryOperatorKind::BO_LOr) {
-    std::cout << " ------ A||A or A&&A triggered\n";
+    // std::cout << " ------ A||A or A&&A triggered\n";
     if (clang_stmt_printer(bin_op->getLHS()->IgnoreParenImpCasts()) ==
         clang_stmt_printer(bin_op->getRHS()->IgnoreParenImpCasts())) {
       return ast_visit_stmt(bin_op->getLHS());
@@ -198,11 +200,10 @@ AlgebraicSimplifier::simplify_simple_bin_op(const BinaryOperator *bin_op) {
                               {VariableType::STATE_ARRAY, true},
                               {VariableType::STATE_SCALAR, true}});
     const auto allConsts = get_constants_in(bin_op);
-    for (const auto & e : allConsts) {
+    // for (const auto &e : allConsts) {
+    // std::cout << " -> constant: " << e << std::endl;
+    // }
 
-      std::cout << " -> constant: " << e << std::endl;
-    }
-    
     long constEval = [allConsts, opcode]() {
       switch (opcode) {
         long c;
@@ -239,18 +240,18 @@ AlgebraicSimplifier::simplify_simple_bin_op(const BinaryOperator *bin_op) {
       }
     }();
 
-    std::string ret = ""; 
+    std::string ret = "";
     int noConsts = !(allConsts.size() > 0);
     if (!noConsts)
-     ret = std::to_string(constEval);    
+      ret = std::to_string(constEval);
     for (const auto &vs : allVars) {
       if (noConsts) {
         ret += vs;
         noConsts = 0;
-      } else 
+      } else
         ret += bin_op->getOpcodeStr().str() + vs;
     }
-    std::cout << "  result of rewriting: " << ret << std::endl;
+    // std::cout << "  result of rewriting: " << ret << std::endl;
     return ret;
   }
 
