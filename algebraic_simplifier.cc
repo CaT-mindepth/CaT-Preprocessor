@@ -87,6 +87,29 @@ AlgebraicSimplifier::ast_visit_un_op(const clang::UnaryOperator *un_op) {
   }
 }
 
+void binopCanonicalizerCollector(std::set<std::string> &terms,
+                                 const BinaryOperator::Opcode opcode,
+                                 const Expr *expr) {
+  // extract out a maximal conjunctive formula
+  // on the subtree, treat everything else as atomic formulae,
+  // and eliminate identical terms.
+  expr = expr->IgnoreParenImpCasts();
+  if (not isa<BinaryOperator>(expr)) {
+    terms.insert(clang_stmt_printer(expr));
+    return;
+  }
+  const auto *bin_op = dyn_cast<BinaryOperator>(expr);
+  if (bin_op->getOpcode() != opcode) {
+    terms.insert(clang_stmt_printer(expr));
+    return;
+  }
+  // else, recurse.
+  binopCanonicalizerCollector(terms, opcode,
+                              bin_op->getLHS()->IgnoreParenImpCasts());
+  binopCanonicalizerCollector(terms, opcode,
+                              bin_op->getRHS()->IgnoreParenImpCasts());
+}
+
 std::string
 AlgebraicSimplifier::simplify_simple_bin_op(const BinaryOperator *bin_op) {
   assert_exception(can_be_simplified(bin_op));
@@ -285,6 +308,25 @@ AlgebraicSimplifier::simplify_simple_bin_op(const BinaryOperator *bin_op) {
     else
       return rhsStr + std::string(bin_op->getOpcodeStr()) + lhsStr;
   }
+
+
+  // Try to canonicalize a certain binary operation.
+  // A && A && A && B --> A && B via collecting all terms into a std::set<std::string>.
+  
+  if (bin_op->getOpcode() == BinaryOperator::Opcode::BO_LAnd || bin_op->getOpcode() == BinaryOperator::Opcode::BO_LOr) {
+    std::set<std::string> terms;
+    std::string curr = clang_stmt_printer(bin_op);
+    binopCanonicalizerCollector(terms, bin_op->getOpcode(), bin_op);
+    std::vector<std::string> rets(terms.begin(), terms.end());
+    std::string ret = "";
+    for (size_t i = 0; i < rets.size(); i++) {
+      if (i != rets.size() - 1) ret += "(" + rets[i] + ") " + bin_op->getOpcodeStr().str() + " ";
+      else ret += "(" + rets[i] + ")";
+    }
+    if (curr != ret)
+      return ret;
+  }
+
 
   return ast_visit_stmt(bin_op->getLHS()) +
          std::string(bin_op->getOpcodeStr()) + ast_visit_stmt(bin_op->getRHS());
