@@ -1,8 +1,8 @@
 SUBDIRS = third_party . 
 
 AM_CXXFLAGS = $(PICKY_CXXFLAGS) -I$(CLANG_DEV_LIBS)/include/
-AM_CPPFLAGS = -I$(CLANG_DEV_LIBS)/include/ -stdlib=libc++   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
-AM_LDFLAGS = -fuse-ld=lld -L $(CLANG_DEV_LIBS)/lib  -Wl,-search_paths_first -Wl,-headerpad_max_install_names
+AM_CPPFLAGS = -I$(CLANG_DEV_LIBS)/include/    -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
+AM_LDFLAGS = -fuse-ld=lld -L $(CLANG_DEV_LIBS)/lib  
 
 # There are some strange circular deps within clang requiring us to list libraries twice
 # https://github.com/eliben/llvm-clang-samples/blob/master/Makefile#L71 #-lLLVM-12
