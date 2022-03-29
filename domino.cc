@@ -32,6 +32,8 @@
 #include <set>
 #include <string>
 #include <functional>
+#include <algorithm>
+#include <numeric>
 
 #include "third_party/assert_exception.h"
 
@@ -40,11 +42,12 @@
 #include "compiler_pass.h"
 
 // Graph utilities
-#include "graph.h"
 
 
 // For debugging purposes
 #include <cassert>
+
+#define DEBUG 0
 
 // For the _1, and _2 in std::bind
 // (Partial Function Application)
@@ -160,8 +163,6 @@ const auto default_pass_list = "desugar_comp_asgn,array_replacer,array_validator
 
       /// Process them one after the other
       size_t i = 0;
-      // std::cout << "total number of passes: " << passes_to_run.size() << std::endl;
-      // std::cout << "order to run passes: " << default_pass_list << std::endl;
       const auto & result = std::accumulate(passes_to_run.begin(), passes_to_run.end(), string_to_parse, [&i, &pass_list] (const auto & current_output, const auto & pass_functor __attribute__((unused)))
                                    { 
                                    std::cout << "processing pass " << i << ": " << pass_list[i] << std::endl;
