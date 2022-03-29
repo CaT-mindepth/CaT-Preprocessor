@@ -31,8 +31,8 @@ dce_body(const clang::CompoundStmt *function_body,
   // Since we're after SSA, it suffices
   // to check whether there are any LHSes that
   // never gets used on a RHS throughout the function body.
-  std::set<const std::string> lhsVars;
-  std::set<const std::string> rhsVars;
+  std::set<std::string> lhsVars;
+  std::set<std::string> rhsVars;
 
   for (const auto *child : function_body->children()) {
     // Extract packet variable (i.e. only look at assignment statements.)
@@ -59,7 +59,7 @@ dce_body(const clang::CompoundStmt *function_body,
 
   // emptyDefines are lhsVars that _do not_ appear as rhsVars
   // they are exactly the set of dead codes we want to eliminate
-  std::set<const std::string> emptyDefines;
+  std::set<std::string> emptyDefines;
   for (const auto &lhsVar : lhsVars)
     if (rhsVars.find(lhsVar) == rhsVars.end())
       emptyDefines.insert(lhsVar);

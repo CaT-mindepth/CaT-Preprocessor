@@ -4,7 +4,6 @@
 #include <set>
 #include <string>
 #include <map>
-#include <type_traits> // C++17 feature, required by stmt_type_census
 
 #include "clang/AST/Decl.h"
 #include "clang/AST/Stmt.h"
@@ -50,17 +49,10 @@ std::set<std::string> identifier_census(const clang::TranslationUnitDecl * decl,
                                         const VariableTypeSelector & var_selector =
                                         {{VariableType::PACKET, true}, {VariableType::FUNCTION_PARAMETER, true}, {VariableType::STATE_SCALAR, true}, {VariableType::STATE_ARRAY, true}});
 
-/// Decides if a AST node `stmt` contains a descendant of type `T` that
-/// subclasses Stmt, by recursively visiting all descendatns of the given
-/// AST node.
-/// Requires T to be a subclass of Stmt.
-template <typename T,
-          typename = std::enable_if_t<std::is_base_of<clang::Stmt, T>::value>>
-bool stmt_type_census(const clang::Stmt *stmt);
 
 /// Gets all constant values inside a statement. Complements `gen_var_list`
 /// which works for only variables.
-std::set<const std::string> get_constants_in(const clang::Stmt * expr);
+std::set<std::string> get_constants_in(const clang::Stmt * expr);
 
 /// Decide if binary operatoion `bin_op` contains
 /// only operators in the list.

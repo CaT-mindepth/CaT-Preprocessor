@@ -136,24 +136,12 @@ identifier_census(const clang::TranslationUnitDecl *decl,
   return identifiers;
 }
 
-template <typename T> bool stmt_type_census(const Stmt *stmt) {
-  if (isa<T>(stmt)) {
-    return true;
-  } else {
-    bool containsT = false;
-    for (const auto *child : stmt->children()) {
-      containsT = containsT || stmt_type_census<T>(child);
-    }
-    return containsT;
-  }
-}
-
-std::set<const std::string> get_constants_in(const clang::Stmt *expr) {
+std::set<std::string> get_constants_in(const clang::Stmt *expr) {
   if (isa<IntegerLiteral>(expr))
     return {std::to_string(
         (dyn_cast<IntegerLiteral>(expr))->getValue().getSExtValue())};
   else {
-    std::set<const std::string> consts;
+    std::set<std::string> consts;
     for (const auto *ch : expr->children()) {
       const auto &ch_consts = get_constants_in(ch);
       consts.insert(ch_consts.begin(), ch_consts.end());

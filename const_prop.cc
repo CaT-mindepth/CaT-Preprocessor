@@ -77,6 +77,8 @@ const_prop_body(const clang::CompoundStmt *function_body,
     else if (isa<DeclRefExpr>(lhs)) var_decl = pkt_var;
     else assert_exception(false);
 
+    const auto p = lhs->getType().getAsString();
+
     if (Context::GetContext().GetOptLevel(var_decl) == D_NO_OPT) continue; // do not replace.
     // else, carry out replacement.
     if (const_vars.find(clang_stmt_printer(lhs)) == const_vars.end()) {
