@@ -32,7 +32,12 @@ You should get a binary named `domino` in the current folder after you successfu
 Afterwards, you can feed the content inside `preprocessed.in` into the CaT codegen.
 
 
+## The `--debug` option
 
+If you want to look at the resultant program after each transformation pass, you can supply the `--debug` option (but only after the input argument) to `domino` like this:
+```
+./domino <input domino .c file> --debug
+```
 
 
 
