@@ -228,10 +228,19 @@ int main(int argc, const char **argv) {
     //       -> rename_pkt_fields
 
     // Usage: domino <source_file>
-    if (argc == 2) {
+    bool require_printout = false;
+    if (argc >= 2) {
       // Get cmdline args
       const auto string_to_parse = file_to_str(std::string(argv[1]));
       const auto pass_list = split(default_pass_list, ",");
+
+      if (argc == 3) {
+        std::string arg3 = std::string(argv[2]);
+        if (arg3 == "--debug") require_printout = true;
+        else {
+          std::cerr << "err: malformed arguments" << std::endl; return EXIT_FAILURE;
+      	}
+      }
 
       // add all preprocessing passes
       PassFunctorVector passes_to_run;
@@ -245,15 +254,15 @@ int main(int argc, const char **argv) {
       size_t i = 0;
       const auto &result = std::accumulate(
           passes_to_run.begin(), passes_to_run.end(), string_to_parse,
-          [&i, &pass_list](const auto &current_output,
+          [require_printout, &i, &pass_list](const auto &current_output,
                            const auto &pass_functor __attribute__((unused))) {
-            if (DEBUG) {
+            if (DEBUG || require_printout) {
               std::cout << "processing pass " << i << ": " << pass_list[i]
                         << std::endl;
             }
             i++;
             const auto p = (*pass_functor())(current_output);
-            if (DEBUG) {
+            if (DEBUG || require_printout) {
               std::cout << "program: " << p << std::endl;
               std::cout << "...pass " << i << " done.\n";
             }
