@@ -280,6 +280,7 @@ int main(int argc, const char **argv) {
         Context &ctx = Context::GetContext();
         ctx.Print();
       }
+      
       return EXIT_SUCCESS;
     } else {
       print_usage();
