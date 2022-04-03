@@ -221,7 +221,7 @@ int main(int argc, const char **argv) {
 
     const auto default_pass_list =
         "desugar_comp_asgn,array_replacer,array_validator,initial_pass,int_"
-        "type_checker,if_converter,elim_identical_lhs_rhs,stateful_flanks,algebra_simplify,ssa,expr_"
+        "type_checker,if_converter,stateful_flanks,algebra_simplify,elim_identical_lhs_rhs,ssa,expr_"
         "propagater,algebra_simplify,paren_remover,create_branch_var,algebra_"
         "simplify,dce,dde,rename_pkt_fields"; //,stateful_flanks,algebra_simplify,create_branch_var,ssa,paren_remover,expr_propagater,expr_flattener,dde,rename_pkt_fields";//,expr_flattener,rename_pkt_fields";//,stateful_flanks,algebra_simplify,ssa";
 
