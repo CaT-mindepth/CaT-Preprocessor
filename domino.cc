@@ -10,6 +10,7 @@
 #include "dce.h"
 #include "dde.h"
 #include "desugar_compound_assignment.h"
+#include "elim_identical_lhs_rhs.h"
 #include "elim_ternary.h"
 #include "expr_flattener_handler.h"
 #include "expr_prop.h"
@@ -18,13 +19,11 @@
 #include "initial_pass.h"
 #include "int_type_checker.h"
 #include "paren_remover.h"
-#include "reduce_var_types_helper.h"
 #include "redundancy_remover.h"
 #include "rename_pkt_fields.h"
 #include "ssa.h"
 #include "stateful_flanks.h"
 #include "validator.h"
-#include "elim_identical_lhs_rhs.h"
 
 #include <csignal>
 
@@ -91,7 +90,8 @@ void populate_passes() {
     return std::make_unique<DefaultSinglePass>(paren_remover_transform);
   };
   all_passes["elim_identical_lhs_rhs"] = []() {
-    return std::make_unique<DefaultSinglePass>(elim_identical_lhs_rhs_transform);
+    return std::make_unique<DefaultSinglePass>(
+        elim_identical_lhs_rhs_transform);
   };
   all_passes["cse"] = []() {
     return std::make_unique<
@@ -172,8 +172,7 @@ void populate_passes() {
     return std::make_unique<DefaultSinglePass>(dde_transform);
   };
   all_passes["rename_pkt_fields"] = []() {
-    return std::make_unique<CompoundPass>(std::vector<DefaultTransformer>(
-        {reduce_var_types_helper_transform, rename_pkt_fields_transform}));
+    return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform);
   };
 }
 
@@ -221,9 +220,11 @@ int main(int argc, const char **argv) {
 
     const auto default_pass_list =
         "desugar_comp_asgn,array_replacer,array_validator,initial_pass,int_"
-        "type_checker,if_converter,stateful_flanks,algebra_simplify,elim_identical_lhs_rhs,ssa,expr_"
+        "type_checker,if_converter,stateful_flanks,algebra_simplify,elim_"
+        "identical_lhs_rhs,ssa,expr_"
         "propagater,algebra_simplify,paren_remover,create_branch_var,algebra_"
-        "simplify,dce,dde,rename_pkt_fields"; //,stateful_flanks,algebra_simplify,create_branch_var,ssa,paren_remover,expr_propagater,expr_flattener,dde,rename_pkt_fields";//,expr_flattener,rename_pkt_fields";//,stateful_flanks,algebra_simplify,ssa";
+        "simplify,dce,dde,rename_pkt_fields";
+    //,stateful_flanks,algebra_simplify,create_branch_var,ssa,paren_remover,expr_propagater,expr_flattener,dde,rename_pkt_fields";//,expr_flattener,rename_pkt_fields";//,stateful_flanks,algebra_simplify,ssa";
 
     // new pipeline:
     // initial_pass -> int_type_checker -> desugar_comp_asgn -> if_converter ->
@@ -240,10 +241,12 @@ int main(int argc, const char **argv) {
 
       if (argc == 3) {
         std::string arg3 = std::string(argv[2]);
-        if (arg3 == "--debug") require_printout = true;
+        if (arg3 == "--debug")
+          require_printout = true;
         else {
-          std::cerr << "err: malformed arguments" << std::endl; return EXIT_FAILURE;
-      	}
+          std::cerr << "err: malformed arguments" << std::endl;
+          return EXIT_FAILURE;
+        }
       }
 
       // add all preprocessing passes
@@ -259,7 +262,8 @@ int main(int argc, const char **argv) {
       const auto &result = std::accumulate(
           passes_to_run.begin(), passes_to_run.end(), string_to_parse,
           [require_printout, &i, &pass_list](const auto &current_output,
-                           const auto &pass_functor __attribute__((unused))) {
+                                             const auto &pass_functor
+                                             __attribute__((unused))) {
             if (DEBUG || require_printout) {
               std::cout << "processing pass " << i << ": " << pass_list[i]
                         << std::endl;
@@ -280,7 +284,7 @@ int main(int argc, const char **argv) {
         Context &ctx = Context::GetContext();
         ctx.Print();
       }
-      
+
       return EXIT_SUCCESS;
     } else {
       print_usage();

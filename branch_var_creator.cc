@@ -60,7 +60,11 @@ create_branch_var(const clang::CompoundStmt *function_body,
         const std::string br_var_name = expr_to_var[conditional];
         out += lhs + " = " + br_var_name + " ? (" + rhs_texpr + ") : (" +
                rhs_fexpr + ");";
-      } else if (cond_is_unary &&
+      }
+      // Note: Temporarily commenting this out because we're facing an issue
+      // with this in marple_tcp_nmo.
+      #if 0
+       else if (cond_is_unary &&
                  expr_to_var.find(negated_expr) != expr_to_var.end()) {
         // do not create new branch temporary; instead, create a negated version
         // of an existing branch var.
@@ -68,7 +72,9 @@ create_branch_var(const clang::CompoundStmt *function_body,
         out += lhs + " = " + br_var_name + " ? (" + rhs_texpr + ") : (" +
                rhs_fexpr + ");";
 
-      } else {
+      } 
+      #endif
+      else {
         // create new branch temporary.
         std::string tmp_var_name = uid.get_unique_identifier("_br_tmp");
         new_decls.push_back("int " + tmp_var_name + ";");

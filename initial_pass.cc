@@ -10,10 +10,6 @@ using namespace std;
 
 #include <iostream>
 
-// struct Packet {
-   // int p;
-//}
-
 string initial_pass_transform(const clang::TranslationUnitDecl * tu_decl) {
   for (const auto *child_decl : dyn_cast<DeclContext>(tu_decl)->decls()) {
       if (isa<RecordDecl>(child_decl)) {

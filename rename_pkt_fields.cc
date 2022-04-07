@@ -6,9 +6,9 @@
 #include "third_party/assert_exception.h"
 
 #include "clang_utility_functions.h"
+#include "context.h"
 #include "pkt_func_transform.h"
 #include "unique_identifiers.h"
-#include "context.h"
 
 using namespace clang;
 using std::placeholders::_1;
@@ -25,9 +25,6 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
   UniqueIdentifiers unique_identifiers(id_set);
 
   // Identifiers census
-  //std::cout
-  //    << "rename_pkt_fields_transform: processing packet and stateful vars: "
-  //    << std::endl;
   const VariableTypeSelector packetVarsSel = {
       {VariableType::STATE_SCALAR, false},
       {VariableType::STATE_ARRAY, false},
@@ -44,9 +41,9 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
   std::set<std::string> branchVars;
   std::set<std::string> statelessVars =
       identifier_census(tu_decl, packetVarsSel);
-  //std::cout << "rename_pkt_fields_transform: outputting vars..." << std::endl;
   for (const auto &statelessVar : statelessVars) {
-    if (Context::GetContext().GetType(statelessVar) == D_BIT) branchVars.insert(statelessVar);
+    if (Context::GetContext().GetType(statelessVar) == D_BIT)
+      branchVars.insert(statelessVar);
     else {
       std::cout << "int p_" << statelessVar << ";" << std::endl;
     }
@@ -56,7 +53,7 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
     std::cout << "int " << stateVar << ";" << std::endl;
   }
   std::cout << "# state variables end" << std::endl;
-  for (const auto & branchVar : branchVars) {
+  for (const auto &branchVar : branchVars) {
     std::cout << "bit p_" << branchVar << ";" << std::endl;
   }
   std::cout << "# declarations end" << std::endl;
@@ -64,11 +61,12 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
     assert_exception(child_decl);
     if (isa<VarDecl>(child_decl) or isa<RecordDecl>(child_decl)) {
       // Pass through these declarations as is
-      //ret += clang_decl_printer(child_decl) + ";";
+      //      ret += clang_decl_printer(child_decl) + ";";
       continue;
     } else if (isa<FunctionDecl>(child_decl) and
                (not is_packet_func(dyn_cast<FunctionDecl>(child_decl)))) {
-      //ret += generate_scalar_func_def(dyn_cast<FunctionDecl>(child_decl));
+      //      ret +=
+      //      generate_scalar_func_def(dyn_cast<FunctionDecl>(child_decl));
       continue;
     } else if (isa<FunctionDecl>(child_decl) and
                (is_packet_func(dyn_cast<FunctionDecl>(child_decl)))) {
@@ -80,7 +78,6 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
       const auto pkt_type =
           function_decl->getParamDecl(0)->getType().getAsString();
       const auto pkt_name = clang_value_decl_printer(pkt_param);
-
       ret += rename_pkt_fields_body(
           dyn_cast<clang::CompoundStmt>(function_decl->getBody()), pkt_name);
     }
@@ -93,8 +90,6 @@ std::string rename_pkt_fields_body(const clang::CompoundStmt *function_body,
                                    const std::string &pkt_name
                                    __attribute__((unused))) {
 
-  // std::cout << "hello here" << std::endl;
-                                     
   std::string transformed_body = "";
 
   // Vector of newly created packet temporaries

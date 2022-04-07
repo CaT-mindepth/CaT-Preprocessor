@@ -17,7 +17,7 @@ common_source = \
     int_type_checker.h algebraic_simplifier.cc algebraic_simplifier.h \
     array_validator.h redundancy_remover.cc redundancy_remover.h \
     csi.cc csi.h cse.cc cse.h const_prop.cc const_prop.h dce.cc dce.h dde.cc dde.h \
-    rename_pkt_fields.cc rename_pkt_fields.h reduce_var_types_helper.cc reduce_var_types_helper.h \
+    rename_pkt_fields.cc rename_pkt_fields.h  \
     gen_used_fields.cc gen_used_fields.h validator.h bool_to_int.h ast_visitor.cc ast_visitor.h \
     elim_ternary.cc elim_ternary.h initial_pass.cc initial_pass.h branch_var_creator.cc branch_var_creator.h \
     array_replacer.cc array_replacer.h paren_remover.cc paren_remover.h \

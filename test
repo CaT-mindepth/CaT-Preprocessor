@@ -1,0 +1,73 @@
+processing pass 0: initial_pass
+program: int established;
+struct Packet {
+    int drop;
+    int src;
+    int dst;
+    int established00;
+    int array_index0;
+    int established01;
+    int drop0;
+    int _br_tmp2;
+    int _br_tmp3;
+};
+void func(struct Packet p) {
+    p.established00 = established;
+    p.array_index0 = p.dst + p.src;
+    p._br_tmp2 = p.src == 102;
+    p.established01 = p._br_tmp2 ? (1) : (p.established00);
+    p._br_tmp3 = (!(p.src == 102)) && (p.dst == 102);
+    p.drop0 = p._br_tmp3 ? (p.established01 == 0) : (p.drop);
+    established = p.established01;
+}
+
+...pass 1 done.
+processing pass 1: rename_pkt_fields
+int p__br_tmp2;
+int p__br_tmp3;
+int p_array_index0;
+int p_drop;
+int p_drop0;
+int p_dst;
+int p_established00;
+int p_established01;
+int p_src;
+# state variables start
+int established;
+# state variables end
+# declarations end
+visiting p.established00 = established
+visiting p.array_index0 = p.dst + p.src
+visiting p._br_tmp2 = p.src == 102
+visiting p.established01 = p._br_tmp2 ? (1) : (p.established00)
+visiting p._br_tmp3 = (!(p.src == 102)) && (p.dst == 102)
+visiting established = p.established01
+---
+visiting p.established00 = established
+visiting LHS = p.established00
+visiting p.array_index0 = p.dst + p.src
+visiting LHS = p.array_index0
+visiting p._br_tmp2 = p.src == 102
+visiting LHS = p._br_tmp2
+visiting p.established01 = p._br_tmp2 ? (1) : (p.established00)
+visiting LHS = p.established01
+visiting p._br_tmp3 = (!(p.src == 102)) && (p.dst == 102)
+visiting LHS = p._br_tmp3
+visiting established = p.established01
+visiting LHS = established
+p_established00 = established;
+p_array_index0 = p_dst+p_src;
+p__br_tmp2 = p_src==102;
+p_established01 = p__br_tmp2 ? (1) : (p_established00);
+p__br_tmp3 = (!(p_src==102))&&(p_dst==102);
+established = p_established01;
+
+program: p_established00 = established;
+p_array_index0 = p_dst+p_src;
+p__br_tmp2 = p_src==102;
+p_established01 = p__br_tmp2 ? (1) : (p_established00);
+p__br_tmp3 = (!(p_src==102))&&(p_dst==102);
+established = p_established01;
+
+...pass 2 done.
++->> rjf@tractor1 | synthesis/domi
