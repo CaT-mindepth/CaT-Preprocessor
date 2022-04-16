@@ -14,13 +14,31 @@ using namespace clang;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
+std::string get_pkt_prefix(const TranslationUnitDecl *tu_decl) {
+  for (const auto *child_decl : dyn_cast<DeclContext>(tu_decl)->decls()) {
+    if (isa<FunctionDecl>(child_decl) and
+               (is_packet_func(dyn_cast<FunctionDecl>(child_decl)))) {
+      const auto *function_decl = dyn_cast<FunctionDecl>(child_decl);
+
+      // Extract function signature
+      assert_exception(function_decl->getNumParams() >= 1);
+      const auto *pkt_param = function_decl->getParamDecl(0);
+      const auto pkt_type =
+          function_decl->getParamDecl(0)->getType().getAsString();
+      const auto pkt_name = clang_value_decl_printer(pkt_param);
+      return pkt_name + "_";
+    }
+  }
+  return "p_";
+}
+
 std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
 
   const auto &id_set = identifier_census(tu_decl);
 
   // Storage for returned string
   std::string ret;
-
+  std::string pkt_prefix = get_pkt_prefix(tu_decl);
   // Create unique identifier generator
   UniqueIdentifiers unique_identifiers(id_set);
 
@@ -45,7 +63,7 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
     if (Context::GetContext().GetType(statelessVar) == D_BIT)
       branchVars.insert(statelessVar);
     else {
-      std::cout << "int p_" << statelessVar << ";" << std::endl;
+      std::cout << "int " << pkt_prefix << statelessVar << ";" << std::endl;
     }
   }
   std::cout << "# state variables start" << std::endl;
@@ -54,7 +72,7 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
   }
   std::cout << "# state variables end" << std::endl;
   for (const auto &branchVar : branchVars) {
-    std::cout << "bit p_" << branchVar << ";" << std::endl;
+    std::cout << "bit " << pkt_prefix << branchVar << ";" << std::endl;
   }
   std::cout << "# declarations end" << std::endl;
   for (const auto *child_decl : dyn_cast<DeclContext>(tu_decl)->decls()) {
