@@ -135,6 +135,16 @@ public:
     }
   }
 
+  void PrintPktVars(std::string prefix = "") {
+    for (const auto & p : this->var_kind) {
+      auto kind = p.second;
+      auto opt_level = this->opt_levels[p.first];
+      if (kind == D_PKT_FIELD && opt_level == D_NO_OPT) {
+        std::cout << prefix << p.first << std::endl;
+      }
+    }
+  }
+
   // Mark constructors as singleton
 
   //  Context(Context const&)               = delete;

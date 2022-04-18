@@ -74,6 +74,8 @@ std::string rename_pkt_fields_transform(const TranslationUnitDecl *tu_decl) {
   for (const auto &branchVar : branchVars) {
     std::cout << "bit " << pkt_prefix << branchVar << ";" << std::endl;
   }
+  std::cout << "# packet vars start" << std::endl;
+  Context::GetContext().PrintPktVars(pkt_prefix);
   std::cout << "# declarations end" << std::endl;
   for (const auto *child_decl : dyn_cast<DeclContext>(tu_decl)->decls()) {
     assert_exception(child_decl);
