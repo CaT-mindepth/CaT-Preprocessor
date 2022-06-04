@@ -3,6 +3,9 @@
 
 This is a preprocessor capable of optimizing P4 action blocks given as Domino program input, modified from the Domino compiler (https://github.com/packet-transactions/domino-compiler). In particular, we made several enhancements to the Domino optimizations, and stripped it of all its backend capabilities to simply output a preprocessed intermediate representation to be fed into the CaT code generator.
 
+## Pass Diagram
+<img src="https://github.com/CaT-mindepth/CaT-Preprocessor/blob/master/pass_diagram.png?raw=true">
+
 ## Installation guide
 
 First, make sure `automake`, `clang`, `clang++`, and `lld` are installed on your target system. They can be installed either from source or via your favorite package manager.
