@@ -16,6 +16,7 @@ BinaryOperator::Opcode DesugarCompAssignment::get_underlying_op(const BinaryOper
   else if (comp_asgn_op == BinaryOperator::Opcode::BO_DivAssign) return BinaryOperator::Opcode::BO_Div;
   else if (comp_asgn_op == BinaryOperator::Opcode::BO_AndAssign) return BinaryOperator::Opcode::BO_And;
   else if (comp_asgn_op == BinaryOperator::Opcode::BO_OrAssign) return BinaryOperator::Opcode::BO_Or;
+  else if (comp_asgn_op == BinaryOperator::Opcode::BO_XorAssign) return BinaryOperator::Opcode::BO_XorAssign;
   else {
         throw std::logic_error("Got opcode that get_underlying_op can't handle: " + std::string(BinaryOperator::getOpcodeStr(comp_asgn_op)));
   }
