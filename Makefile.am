@@ -6,7 +6,7 @@ AM_LDFLAGS = -fuse-ld=lld -L $(CLANG_DEV_LIBS)/lib
 
 # There are some strange circular deps within clang requiring us to list libraries twice
 # https://github.com/eliben/llvm-clang-samples/blob/master/Makefile#L71 #-lLLVM-12
-CLANG_LLVM_LIBS = -l$(LLVM_VERSION) -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization  -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization  -lpthread -ltermcap -ldl -l$(LLVM_VERSION)
+CLANG_LLVM_LIBS = -l$(LLVM_VERSION) -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization  -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization  -lclangSupport -lpthread -ltermcap -ldl -l$(LLVM_VERSION)
 
 common_source = \
     clang_utility_functions.cc  clang_utility_functions.h unique_identifiers.h unique_identifiers.cc \
@@ -21,7 +21,8 @@ common_source = \
     gen_used_fields.cc gen_used_fields.h validator.h bool_to_int.h ast_visitor.cc ast_visitor.h \
     elim_ternary.cc elim_ternary.h initial_pass.cc initial_pass.h branch_var_creator.cc branch_var_creator.h \
     array_replacer.cc array_replacer.h paren_remover.cc paren_remover.h \
-    elim_identical_lhs_rhs.cc elim_identical_lhs_rhs.h
+    elim_identical_lhs_rhs.cc elim_identical_lhs_rhs.h \
+    flow_based_ite_simplifier.cc flow_based_ite_simplifier.h
 
 #noinst_LIBRARIES = libdomino.a
 bin_PROGRAMS = domino
