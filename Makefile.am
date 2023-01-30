@@ -21,7 +21,8 @@ common_source = \
     gen_used_fields.cc gen_used_fields.h validator.h bool_to_int.h ast_visitor.cc ast_visitor.h \
     elim_ternary.cc elim_ternary.h initial_pass.cc initial_pass.h branch_var_creator.cc branch_var_creator.h \
     array_replacer.cc array_replacer.h paren_remover.cc paren_remover.h \
-    elim_identical_lhs_rhs.cc elim_identical_lhs_rhs.h
+    elim_identical_lhs_rhs.cc elim_identical_lhs_rhs.h \
+    flow_based_ite_simplifier.cc flow_based_ite_simplifier.h
 
 #noinst_LIBRARIES = libdomino.a
 bin_PROGRAMS = domino

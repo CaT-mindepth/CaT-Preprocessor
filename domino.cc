@@ -24,6 +24,7 @@
 #include "ssa.h"
 #include "stateful_flanks.h"
 #include "validator.h"
+#include "flow_based_ite_simplifier.h"
 
 #include <csignal>
 
@@ -174,6 +175,9 @@ void populate_passes() {
   all_passes["rename_pkt_fields"] = []() {
     return std::make_unique<DefaultSinglePass>(rename_pkt_fields_transform);
   };
+  all_passes["flow_ite_simplify"] = []() {
+    return std::make_unique<DefaultSinglePass>(flow_based_ite_simplify_transform);
+  };
 }
 
 PassFunctor get_pass_functor(const std::string &pass_name,
@@ -223,7 +227,7 @@ int main(int argc, const char **argv) {
         "type_checker,if_converter,stateful_flanks,algebra_simplify,elim_"
         "identical_lhs_rhs,ssa,expr_"
         "propagater,algebra_simplify,paren_remover,create_branch_var,algebra_"
-        "simplify,dce,dde,rename_pkt_fields";
+        "simplify,dce,dde,flow_ite_simplify,rename_pkt_fields"; //,flow_ite_simplify";//rename_pkt_fields";
     //,stateful_flanks,algebra_simplify,create_branch_var,ssa,paren_remover,expr_propagater,expr_flattener,dde,rename_pkt_fields";//,expr_flattener,rename_pkt_fields";//,stateful_flanks,algebra_simplify,ssa";
 
     // new pipeline:

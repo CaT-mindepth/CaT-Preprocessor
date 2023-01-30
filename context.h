@@ -90,7 +90,7 @@ public:
     return this->last_derived[base];
   }
 
-  const std::string &GetBase(std::string &derivation) {
+  const std::string &GetBase(const std::string &derivation) {
     return this->base_derived[derivation];
   }
 
