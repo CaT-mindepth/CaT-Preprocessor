@@ -6,7 +6,7 @@ AM_LDFLAGS = -fuse-ld=lld -L $(CLANG_DEV_LIBS)/lib
 
 # There are some strange circular deps within clang requiring us to list libraries twice
 # https://github.com/eliben/llvm-clang-samples/blob/master/Makefile#L71 #-lLLVM-12
-CLANG_LLVM_LIBS = -l$(LLVM_VERSION) -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization  -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization  -lclangSupport -lpthread -ltermcap -ldl -l$(LLVM_VERSION)
+CLANG_LLVM_LIBS = -l$(LLVM_VERSION) -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization  -lclangAST -lclangAnalysis -lclangBasic -lclangDriver -lclangEdit -lclangFrontend -lclangFrontendTool -lclangLex -lclangParse -lclangSema -lclangSerialization -lpthread -ltermcap -ldl -l$(LLVM_VERSION)
 
 common_source = \
     clang_utility_functions.cc  clang_utility_functions.h unique_identifiers.h unique_identifiers.cc \
