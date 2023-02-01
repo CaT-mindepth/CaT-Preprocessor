@@ -210,48 +210,41 @@ int main(int argc, const char **argv) {
     // Populate all passes
     populate_passes();
 
-    // Default pass list
-    // expr_flattener
-    // const auto default_pass_list =
-    // "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener,const_prop,cse,dde,rename_pkt_fields";
-    // // dce pass list w/o anything after SSA
-    // const auto default_pass_list =
-    // "int_type_checker,desugar_comp_asgn,if_converter,algebra_simplify,array_validator,stateful_flanks,ssa,expr_propagater,expr_flattener";
-    // const auto default_pass_list =
-    // "initial_pass,int_type_checker,desugar_comp_asgn,if_converter,array_validator,stateful_flanks,ssa,elim_ternary";
-    // const auto default_pass_list =
-    // "initial_pass,int_type_checker,desugar_comp_asgn,if_converter,stateful_flanks,algebra_simplify,ssa,rename_pkt_fields";
-
     const auto default_pass_list =
         "desugar_comp_asgn,array_replacer,array_validator,initial_pass,int_"
         "type_checker,if_converter,stateful_flanks,algebra_simplify,elim_"
         "identical_lhs_rhs,ssa,expr_"
         "propagater,algebra_simplify,paren_remover,create_branch_var,algebra_"
-        "simplify,dce,dde,flow_ite_simplify,rename_pkt_fields"; //,flow_ite_simplify";//rename_pkt_fields";
-    //,stateful_flanks,algebra_simplify,create_branch_var,ssa,paren_remover,expr_propagater,expr_flattener,dde,rename_pkt_fields";//,expr_flattener,rename_pkt_fields";//,stateful_flanks,algebra_simplify,ssa";
-
-    // new pipeline:
-    // initial_pass -> int_type_checker -> desugar_comp_asgn -> if_converter ->
-    // stateful_flanks -> ssa
-    //       -> expr_propagator -> expr_flattener -> const-prop -> cse -> dde
-    //       -> rename_pkt_fields
-
+        "simplify,dce,dde,flow_ite_simplify,rename_pkt_fields"; 
+    
+    
+    const auto no_opt_pass_list = "desugar_comp_asgn,array_replacer,array_validator,initial_pass,int_"
+        "type_checker,if_converter,stateful_flanks,"
+        "ssa,expr_"
+        "propagater,paren_remover,create_branch_var,"
+        "rename_pkt_fields"; 
+    
     // Usage: domino <source_file>
     bool require_printout = false;
     if (argc >= 2) {
       // Get cmdline args
-      const auto string_to_parse = file_to_str(std::string(argv[1]));
-      const auto pass_list = split(default_pass_list, ",");
+      int no_opt = 0;
 
       if (argc == 3) {
         std::string arg3 = std::string(argv[2]);
         if (arg3 == "--debug")
           require_printout = true;
-        else {
+        else if (arg3 == "--noopt") {
+          no_opt = 1;
+        } else {
           std::cerr << "err: malformed arguments" << std::endl;
           return EXIT_FAILURE;
         }
       }
+
+      const auto string_to_parse = file_to_str(std::string(argv[1]));
+      const auto pass_list = no_opt ? split(no_opt_pass_list, ",") : split(default_pass_list, ",");
+
 
       // add all preprocessing passes
       PassFunctorVector passes_to_run;
